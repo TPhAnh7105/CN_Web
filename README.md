@@ -54,13 +54,13 @@ Hệ thống cần tạo ra các đầu ra sau:
 ## 8. Yêu cầu chức năng
 
 ### 8.1. Chức năng phân hệ Khách hàng
-* **Danh mục & Tìm kiếm:** Xem danh sách theo phòng/loại nội thất, lọc nâng cao (giá, chất liệu, màu sắc), tìm theo từ khóa.
-* **Chi tiết & Mua sắm:** Xem hình ảnh, thông số kỹ thuật, đánh giá; quản lý giỏ hàng (thêm/sửa/xóa, tính tiền).
-* **Thanh toán & Theo dõi:** Nhập thông tin giao hàng, chọn phương thức (COD, chuyển khoản), xem lịch sử trạng thái đơn hàng.
+* **Danh mục & Tìm kiếm:** Xem danh sách theo phòng/loại nội thất, lọc nâng cao , tìm theo từ khóa.
+* **Chi tiết & Mua sắm:** Xem hình ảnh, thông số kỹ thuật, đánh giá; quản lý giỏ hàng .
+* **Thanh toán & Theo dõi:** Nhập thông tin giao hàng, chọn phương thức thanh toán, xem lịch sử trạng thái đơn hàng.
 
 ### 8.2. Chức năng phân hệ Quản trị viên
 * **Tổng quan:** Xem biểu đồ doanh thu, số lượng đơn, sản phẩm bán chạy.
-* **Quản lý Danh mục & Sản phẩm:** Thêm, sửa, xóa (CRUD) sản phẩm và các thuộc tính liên quan.
+* **Quản lý Danh mục & Sản phẩm:** Thêm, sửa, xóa sản phẩm và các thuộc tính liên quan.
 * **Quản lý Kho & Đơn hàng:** Theo dõi tồn kho, duyệt đơn, giao vận chuyển, hủy đơn, nhập kho.
 
 ## 9. Yêu cầu phi chức năng

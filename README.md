@@ -1,7 +1,7 @@
 # ĐẶC TẢ BÀI TOÁN
+Xây dựng hệ thống website quản lý cửa hàng đồ nội thất
+## 1. Mô tả bài toán
 
-## 1. Tên bài toán
-.
 
 ## 2. Bối cảnh bài toán
 Thị trường kinh doanh đồ nội thất hiện nay đang chứng kiến sự chuyển dịch mạnh mẽ từ mua sắm truyền thống sang thương mại điện tử[cite: 86]. Tuy nhiên, các cửa hàng bán lẻ truyền thống gặp một số vấn đề:

@@ -1,7 +1,7 @@
 # ĐẶC TẢ BÀI TOÁN
 Xây dựng hệ thống website quản lý cửa hàng đồ nội thất
 ## 1. Mô tả bài toán
-
+Cửa hàng bán nội thất không chỉ là nơi cung cấp các sản phẩm nội thất,mà còn là không gian để khách hàng trải nghiệm, tìm kiếm ý tưởng trang trí vàlựa chọn phong cách sống phù hợp. Tùy theo quy mô và định hướng kinhdoanh, các cửa hàng nội thất có thể nhắm đến nhiều nhóm khách hàng khácnhau như hộ gia đình, văn phòng, nhà hàng – khách sạn hay các công trình dựán.
 
 ## 2. Bối cảnh bài toán
 Thị trường kinh doanh đồ nội thất hiện nay đang chứng kiến sự chuyển dịch mạnh mẽ từ mua sắm truyền thống sang thương mại điện tử. Tuy nhiên, các cửa hàng bán lẻ truyền thống gặp một số vấn đề:

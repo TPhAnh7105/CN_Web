@@ -1,2 +1,2 @@
-# CN_Web
-Xây dựng Website về thẩm định rủi ro tín dụng (Credit Risk Assessment)
+# ĐẶC TẢ 
+Xây dựng Website quản lý cửa hàng đồ nội thất

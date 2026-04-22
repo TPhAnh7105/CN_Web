@@ -4,7 +4,7 @@ Xây dựng hệ thống website quản lý cửa hàng đồ nội thất
 
 
 ## 2. Bối cảnh bài toán
-Thị trường kinh doanh đồ nội thất hiện nay đang chứng kiến sự chuyển dịch mạnh mẽ từ mua sắm truyền thống sang thương mại điện tử[cite: 86]. Tuy nhiên, các cửa hàng bán lẻ truyền thống gặp một số vấn đề:
+Thị trường kinh doanh đồ nội thất hiện nay đang chứng kiến sự chuyển dịch mạnh mẽ từ mua sắm truyền thống sang thương mại điện tử. Tuy nhiên, các cửa hàng bán lẻ truyền thống gặp một số vấn đề:
 * **Giới hạn tiếp cận:** Hệ thống thủ công chỉ phục vụ được khách hàng trong một khu vực nhất định.
 * **Trải nghiệm mua sắm khó khăn:** Khách hàng gặp khó trong việc tra cứu thông tin chi tiết, kích thước, chất liệu, hoặc so sánh giá cả trước khi quyết định mua.
 * **Quản lý thủ công:** Việc kiểm soát hàng hóa đồ nội thất , theo dõi đơn hàng và doanh thu thường mất thời gian và dễ sai sót.

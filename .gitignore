@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build
+frontend/build/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Dataset gốc (không cần push)
+furniture_dataset.json

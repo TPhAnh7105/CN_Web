@@ -1,0 +1,13 @@
+{
+  "name": "furniture-store",
+  "version": "1.0.0",
+  "description": "LuxeFurnish - Furniture Store Application",
+  "scripts": {
+    "backend": "cd backend && npx nodemon server.js",
+    "frontend": "cd frontend && npm start",
+    "seed": "cd backend && node seed.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

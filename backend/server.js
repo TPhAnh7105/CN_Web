@@ -6,6 +6,10 @@ const { connectDB, sequelize } = require('./src/config/db');
 const User = require('./src/models/user.model');
 const Category = require('./src/models/category.model');
 const Product = require('./src/models/product.model');
+const Transaction = require('./src/models/transaction.model');
+const Order = require('./src/models/order.model');
+const OrderItem = require('./src/models/orderItem.model');
+const Attribute = require('./src/models/attribute.model');
 
 const PORT = process.env.PORT || 5000;
 

@@ -27,6 +27,18 @@ const User = sequelize.define('User', {
     role: {
         type: DataTypes.ENUM('customer', 'admin', 'staff'),
         defaultValue: 'customer'
+    },
+    balance: {
+        type: DataTypes.DECIMAL(15, 2),
+        defaultValue: 0.00
+    },
+    address: {
+        type: DataTypes.TEXT,
+        allowNull: true
+    },
+    birthDate: {
+        type: DataTypes.DATEONLY,
+        allowNull: true
     }
 }, {
     timestamps: true

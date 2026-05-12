@@ -4,6 +4,9 @@ const { connectDB, sequelize } = require('./src/config/db');
 const Category = require('./src/models/category.model');
 const Product = require('./src/models/product.model');
 const User = require('./src/models/user.model');
+const Order = require('./src/models/order.model');
+const OrderItem = require('./src/models/orderItem.model');
+const Transaction = require('./src/models/transaction.model');
 
 const seedData = async () => {
     try {
@@ -15,6 +18,16 @@ const seedData = async () => {
         const salt = await bcrypt.genSalt(10);
         const adminPassword = await bcrypt.hash('admin123', salt);
         await User.create({ username: 'admin', email: 'admin@furniture.com', password: adminPassword, role: 'admin' });
+        
+        // Seed the user test account with initial cash balance
+        const testPass = await bcrypt.hash('123456', salt);
+        await User.create({ 
+            username: 'Neivos', 
+            email: 'trinhphucanh2005@gmail.com', 
+            password: testPass, 
+            role: 'customer', 
+            balance: 500000000.00 
+        });
 
         const categoriesData = [
             { name: 'Phòng khách', description: 'Nội thất phòng khách sang trọng' },

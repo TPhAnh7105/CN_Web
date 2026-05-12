@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ShoppingCart, ChevronLeft, Package, Layers, Palette, Tag, Box } from 'lucide-react';
 import axios from 'axios';
+import { useCart } from '../context/CartContext';
 
 const ProductDetail = () => {
   const { id } = useParams();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [addedToCart, setAddedToCart] = useState(false);
+  const { addToCart } = useCart();
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -23,6 +25,7 @@ const ProductDetail = () => {
   }, [id]);
 
   const handleAddToCart = () => {
+    addToCart(product);
     setAddedToCart(true);
     setTimeout(() => setAddedToCart(false), 2000);
   };

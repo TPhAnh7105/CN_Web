@@ -22,7 +22,7 @@ Xây dựng một hệ thống phần mềm với giao diện dễ sử dụng, 
 * Tạo dựng sự chuyên nghiệp và uy tín cho hình ảnh thương hiệu.
 
 ## 4. Phát biểu bài toán
-Cho trước một tập dữ liệu về các sản phẩm nội thất, mỗi sản phẩm bao gồm các thuộc tính như tên, danh mục , kích thước, màu sắc, chất liệu và giá bán. 
+Cho trước một tập dữ liệu về các sản phẩm nội thất, mỗi sản phẩm bao gồm các thuộc tính như tên
 
 Yêu cầu đặt ra là xây dựng một hệ thống có khả năng lưu trữ lượng dữ liệu, hiển thị chúng trực quan lên website để khách hàng dễ dàng tra cứu, lọc và đặt mua. Đồng thời, hệ thống phải phân quyền rõ ràng để quản trị viên có thể kiểm soát toàn bộ vòng đời của sản phẩm từ khi nhập kho đến khi giao cho khách hàng.
 

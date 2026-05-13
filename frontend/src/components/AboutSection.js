@@ -4,15 +4,15 @@ const AboutSection = () => {
   return (
     <section id="about" className="container" style={{ padding: '100px 20px' }}>
       <div className="about-content" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '60px', alignItems: 'center' }}>
-        <div className="about-image" style={{ position: 'relative' }}>
+        <div className="hero-image" style={{ position: 'relative' }}>
           <img
             src="https://images.unsplash.com/photo-1555041469-a586c61ea9bc?q=80&w=800&auto=format&fit=crop"
             alt="About LuxeFurnish"
-            style={{ width: '100%', borderRadius: '24px', boxShadow: 'var(--shadow-md)' }}
+            style={{ height: '450px' }} // Limit height to look perfect on about section
           />
-          <div style={{ position: 'absolute', bottom: '-20px', right: '-20px', background: 'var(--secondary)', color: 'var(--white)', padding: '30px', borderRadius: '16px', boxShadow: 'var(--shadow-sm)' }}>
-            <h3 style={{ fontSize: '2rem', marginBottom: '5px' }}>0</h3>
-            <p style={{ fontWeight: '500' }}>Năm kinh nghiệm</p>
+          <div className="glass-card" style={{ bottom: '-25px', left: '-25px' }}>
+            <h3 style={{ fontSize: '2.5rem', color: 'var(--secondary)', fontWeight: '700', marginBottom: '5px' }}>Không có</h3>
+            <p style={{ fontWeight: '600', color: 'var(--primary)', fontSize: '0.9rem' }}>kinh nghiệm</p>
           </div>
         </div>
         <div className="about-text">

@@ -80,6 +80,17 @@ exports.getAllUsers = async (req, res) => {
     } catch (err) { res.status(500).json({ message: err.message }); }
 };
 
+// ADMIN: Get all transactions globally
+exports.getAllTransactions = async (req, res) => {
+    try {
+        const list = await Transaction.findAll({
+            include: [{ model: User, attributes: ['username', 'email'] }],
+            order: [['createdAt', 'DESC']]
+        });
+        res.json(list);
+    } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
 // ADMIN: Delete user
 exports.deleteUser = async (req, res) => {
     try {

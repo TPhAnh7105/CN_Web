@@ -7,19 +7,22 @@ const User = require('./src/models/user.model');
 const Order = require('./src/models/order.model');
 const OrderItem = require('./src/models/orderItem.model');
 const Transaction = require('./src/models/transaction.model');
+const Type = require('./src/models/type.model');
+const Style = require('./src/models/style.model');
+const Segment = require('./src/models/segment.model');
 
 const seedData = async () => {
     try {
         await connectDB();
         await sequelize.sync({ force: true });
 
-        console.log('🔄 Đang tiến hành thêm dữ liệu phân loại mới vào Database...');
+        console.log('🔄 Đang tiến hành thêm dữ liệu phân loại độc lập mới vào Database...');
 
         const salt = await bcrypt.genSalt(10);
         const adminPassword = await bcrypt.hash('admin123', salt);
         await User.create({ username: 'admin', email: 'admin@furniture.com', password: adminPassword, role: 'admin' });
         
-        // Seed the user test account with initial cash balance
+        // Seed the user test account
         const testPass = await bcrypt.hash('123456', salt);
         await User.create({ 
             username: 'Neivos', 
@@ -29,12 +32,13 @@ const seedData = async () => {
             balance: 500000000.00 
         });
 
+        // 1. Seed Categories
         const categoriesData = [
-            { name: 'Phòng khách', description: 'Nội thất phòng khách sang trọng' },
-            { name: 'Phòng ngủ', description: 'Không gian nghỉ ngơi thư giãn' },
-            { name: 'Phòng ăn & Bếp', description: 'Ấm cúng từng bữa ăn' },
-            { name: 'Phòng làm việc', description: 'Khơi nguồn sáng tạo' },
-            { name: 'Ngoài trời', description: 'Thư giãn cùng thiên nhiên' }
+            { name: 'Phòng khách' },
+            { name: 'Phòng ngủ' },
+            { name: 'Phòng ăn & Bếp' },
+            { name: 'Phòng làm việc' },
+            { name: 'Ngoài trời' }
         ];
 
         const createdCategories = {};
@@ -93,25 +97,52 @@ const seedData = async () => {
             { name: 'Kệ Trồng Cây Thép Chống Rỉ', price: 1200000, room: 'Ngoài trời', type: 'Tủ', style: 'Công nghiệp', image: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&q=80&w=800' }
         ];
 
-        const productsToInsert = productsData.map(p => ({
-            name: p.name,
-            price: p.price,
-            categoryId: createdCategories[p.room] || null, // Vẫn giữ categoryId để đảm bảo cấu trúc cũ
-            room: p.room,
-            type: p.type,
-            style: p.style,
-            mainImage: p.image,
-            description: `Sản phẩm ${p.name} thuộc phong cách ${p.style}, loại ${p.type}. Vật liệu cao cấp, mang lại vẻ đẹp và công năng hoàn hảo.`,
-            stock: Math.floor(Math.random() * 50) + 10,
-            segment: p.price >= 20000000 ? 'Cao cấp' : (p.price >= 8000000 ? 'Trung lưu' : 'Bình dân')
-        }));
+        // 2. Seed Unique Styles
+        const uniqueStyles = [...new Set(productsData.map(p => p.style))];
+        const createdStyles = {};
+        for (const styleName of uniqueStyles) {
+            const style = await Style.create({ name: styleName });
+            createdStyles[styleName] = style.id;
+        }
+
+        // 3. Seed Unique Types
+        const uniqueTypes = [...new Set(productsData.map(p => p.type))];
+        const createdTypes = {}; 
+        for (const typeName of uniqueTypes) {
+            const type = await Type.create({ name: typeName });
+            createdTypes[typeName] = type.id;
+        }
+
+        // 4. Seed Segments (Phân khúc)
+        const segmentsData = ['Bình dân', 'Trung lưu', 'Cao cấp'];
+        const createdSegments = {};
+        for (const segName of segmentsData) {
+            const segment = await Segment.create({ name: segName });
+            createdSegments[segName] = segment.id;
+        }
+
+        // Prepare products linked with all 4 separate lookup tables
+        const productsToInsert = productsData.map(p => {
+            const segmentName = p.price >= 20000000 ? 'Cao cấp' : (p.price >= 8000000 ? 'Trung lưu' : 'Bình dân');
+            return {
+                name: p.name,
+                price: p.price,
+                categoryId: createdCategories[p.room] || null,
+                typeId: createdTypes[p.type] || null,
+                styleId: createdStyles[p.style] || null,
+                segmentId: createdSegments[segmentName] || null,
+                mainImage: p.image,
+                description: `Sản phẩm ${p.name} thuộc phong cách ${p.style}, loại ${p.type}. Vật liệu cao cấp, mang lại vẻ đẹp và công năng hoàn hảo.`,
+                stock: Math.floor(Math.random() * 50) + 10
+            };
+        });
 
         await Product.bulkCreate(productsToInsert);
-        console.log(`✅ Đã thêm ${productsToInsert.length} Sản phẩm với đầy đủ Phân loại (Loại, Phòng, Phong cách) thành công!`);
+        console.log(`✅ Đã thêm ${productsToInsert.length} Sản phẩm với 4 bảng dữ liệu tách rời độc lập thành công!`);
 
         process.exit(0);
     } catch (error) {
-        console.error('❌ Lỗi:', error);
+        console.error('❌ Lỗi seeding:', error);
         process.exit(1);
     }
 };

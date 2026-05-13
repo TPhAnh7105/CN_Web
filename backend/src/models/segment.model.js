@@ -1,7 +1,7 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/db');
 
-const Category = sequelize.define('Category', {
+const Segment = sequelize.define('Segment', {
     id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
@@ -13,7 +13,7 @@ const Category = sequelize.define('Category', {
         unique: true
     }
 }, {
-    timestamps: true
+    timestamps: false
 });
 
-module.exports = Category;
+module.exports = Segment;

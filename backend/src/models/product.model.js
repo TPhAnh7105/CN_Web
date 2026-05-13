@@ -1,6 +1,9 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/db');
 const Category = require('./category.model');
+const Type = require('./type.model');
+const Style = require('./style.model');
+const Segment = require('./segment.model');
 
 const Product = sequelize.define('Product', {
     id: {
@@ -15,10 +18,6 @@ const Product = sequelize.define('Product', {
     price: {
         type: DataTypes.DECIMAL(10, 2),
         allowNull: false
-    },
-    segment: {
-        type: DataTypes.STRING,
-        allowNull: true
     },
     stock: {
         type: DataTypes.INTEGER,
@@ -39,17 +38,26 @@ const Product = sequelize.define('Product', {
             key: 'id'
         }
     },
-    room: {
-        type: DataTypes.STRING,
-        allowNull: true
+    typeId: {
+        type: DataTypes.INTEGER,
+        references: {
+            model: Type,
+            key: 'id'
+        }
     },
-    type: {
-        type: DataTypes.STRING,
-        allowNull: true
+    styleId: {
+        type: DataTypes.INTEGER,
+        references: {
+            model: Style,
+            key: 'id'
+        }
     },
-    style: {
-        type: DataTypes.STRING,
-        allowNull: true
+    segmentId: {
+        type: DataTypes.INTEGER,
+        references: {
+            model: Segment,
+            key: 'id'
+        }
     }
 }, {
     timestamps: true
@@ -58,5 +66,14 @@ const Product = sequelize.define('Product', {
 // Associations
 Category.hasMany(Product, { foreignKey: 'categoryId' });
 Product.belongsTo(Category, { foreignKey: 'categoryId' });
+
+Type.hasMany(Product, { foreignKey: 'typeId' });
+Product.belongsTo(Type, { foreignKey: 'typeId' });
+
+Style.hasMany(Product, { foreignKey: 'styleId' });
+Product.belongsTo(Style, { foreignKey: 'styleId' });
+
+Segment.hasMany(Product, { foreignKey: 'segmentId' });
+Product.belongsTo(Segment, { foreignKey: 'segmentId' });
 
 module.exports = Product;

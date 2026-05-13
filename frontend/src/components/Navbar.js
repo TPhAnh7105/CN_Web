@@ -196,10 +196,12 @@ const Navbar = () => {
           </div>
 
           {/* Shopping Cart */}
-          <Link to="/cart" style={{ position: 'relative', color: 'var(--white)', display: 'flex', alignItems: 'center' }}>
-            <ShoppingCart size={22} style={{ cursor: 'pointer' }} />
-            {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
-          </Link>
+          {isLoggedIn && (
+            <Link to="/cart" style={{ position: 'relative', color: 'var(--white)', display: 'flex', alignItems: 'center' }}>
+              <ShoppingCart size={22} style={{ cursor: 'pointer' }} />
+              {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
+            </Link>
+          )}
 
           {/* Account / User dropdown */}
           {isLoggedIn ? (

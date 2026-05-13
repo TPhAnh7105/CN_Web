@@ -9,7 +9,9 @@ const Product = require('./src/models/product.model');
 const Transaction = require('./src/models/transaction.model');
 const Order = require('./src/models/order.model');
 const OrderItem = require('./src/models/orderItem.model');
-const Attribute = require('./src/models/attribute.model');
+const Segment = require('./src/models/segment.model');
+const Type = require('./src/models/type.model');
+const Style = require('./src/models/style.model');
 
 const PORT = process.env.PORT || 5000;
 

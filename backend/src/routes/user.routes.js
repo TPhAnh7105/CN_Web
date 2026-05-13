@@ -12,5 +12,6 @@ router.get('/transactions', auth, userController.getTransactions);
 // Admin
 router.get('/', auth, admin, userController.getAllUsers);
 router.delete('/:id', auth, admin, userController.deleteUser);
+router.get('/all-transactions', auth, admin, userController.getAllTransactions);
 
 module.exports = router;

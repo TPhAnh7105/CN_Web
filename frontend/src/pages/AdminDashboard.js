@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { ShoppingBag, Package, Users, Check, X, Trash, Plus, Edit2, AlertCircle, CheckCircle2, FolderOpen, Sofa, Palette, Coins } from 'lucide-react';
+import { ShoppingBag, Package, Users, Check, X, Trash, Plus, Edit2, AlertCircle, CheckCircle2, FolderOpen, Sofa, Palette, Coins, Activity, Eye } from 'lucide-react';
 
 const AdminDashboard = () => {
   const { token, user } = useAuth();
@@ -12,12 +12,15 @@ const AdminDashboard = () => {
   const [products, setProducts] = useState([]);
   const [appUsers, setAppUsers] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [attributes, setAttributes] = useState([]);
+  const [segments, setSegments] = useState([]);
+  const [types, setTypes] = useState([]);
+  const [styles, setStyles] = useState([]);
+  const [allTx, setAllTx] = useState([]);
 
   // Real-time Filtered Attribute Sets
-  const typeOpts = attributes.filter(a => a.group === 'type');
-  const styleOpts = attributes.filter(a => a.group === 'style');
-  const segOpts = attributes.filter(a => a.group === 'segment');
+  const typeOpts = types;
+  const styleOpts = styles;
+  const segOpts = segments;
 
   // Interaction states
   const [activeModal, setActiveModal] = useState(null); 
@@ -26,7 +29,7 @@ const AdminDashboard = () => {
 
   // Form Bindings
   const [prodForm, setProdForm] = useState({ name: '', price: '', stock: 10, type: '', style: '', segment: '', mainImage: '', categoryId: '' });
-  const [catForm, setCatForm] = useState({ name: '', description: '' });
+  const [catForm, setCatForm] = useState({ name: '' });
   const [genericAttrForm, setGenericAttrForm] = useState(''); // simplified string name
 
   const headers = { Authorization: `Bearer ${token}` };
@@ -37,14 +40,24 @@ const AdminDashboard = () => {
 
   const fetchData = async () => {
     try {
-      const [o, p, u, c, a] = await Promise.all([
+      const [o, p, u, c, a, t, s, tx] = await Promise.all([
         axios.get('http://localhost:5000/api/orders', { headers }),
         axios.get('http://localhost:5000/api/products'),
         axios.get('http://localhost:5000/api/users', { headers }),
         axios.get('http://localhost:5000/api/categories'),
-        axios.get('http://localhost:5000/api/attributes')
+        axios.get('http://localhost:5000/api/segments'),
+        axios.get('http://localhost:5000/api/types'),
+        axios.get('http://localhost:5000/api/styles'),
+        axios.get('http://localhost:5000/api/users/all-transactions', { headers })
       ]);
-      setOrders(o.data); setProducts(p.data); setAppUsers(u.data); setCategories(c.data); setAttributes(a.data);
+      setOrders(o.data); 
+      setProducts(p.data); 
+      setAppUsers(u.data); 
+      setCategories(c.data); 
+      setSegments(a.data);
+      setTypes(t.data);
+      setStyles(s.data);
+      setAllTx(tx.data);
     } catch (e) {}
   };
 
@@ -65,7 +78,13 @@ const AdminDashboard = () => {
   const saveAttribute = async (group) => {
     if(!genericAttrForm.trim()) return;
     try {
-      await axios.post('http://localhost:5000/api/attributes', { group, name: genericAttrForm }, { headers });
+      if (group === 'type') {
+        await axios.post('http://localhost:5000/api/types', { name: genericAttrForm }, { headers });
+      } else if (group === 'style') {
+        await axios.post('http://localhost:5000/api/styles', { name: genericAttrForm }, { headers });
+      } else {
+        await axios.post('http://localhost:5000/api/segments', { name: genericAttrForm }, { headers });
+      }
       triggerToast(`Thêm ${genericAttrForm} thành công!`);
       setGenericAttrForm('');
       setActiveModal(null);
@@ -73,9 +92,18 @@ const AdminDashboard = () => {
     } catch(e) { triggerToast('Lỗi thêm!', 'error'); }
   };
 
-  const deleteAttribute = async (id) => {
-    try { await axios.delete(`http://localhost:5000/api/attributes/${id}`, { headers }); triggerToast('Đã xóa'); fetchData(); }
-    catch(e) { triggerToast('Lỗi', 'error'); }
+  const deleteAttribute = async (id, group) => {
+    try { 
+      if (group === 'type') {
+        await axios.delete(`http://localhost:5000/api/types/${id}`, { headers }); 
+      } else if (group === 'style') {
+        await axios.delete(`http://localhost:5000/api/styles/${id}`, { headers });
+      } else {
+        await axios.delete(`http://localhost:5000/api/segments/${id}`, { headers });
+      }
+      triggerToast('Đã xóa'); 
+      fetchData(); 
+    } catch(e) { triggerToast('Lỗi', 'error'); }
   };
 
   const saveCategory = async (e) => {
@@ -109,7 +137,7 @@ const AdminDashboard = () => {
       {/* Dynamic Modals */}
       {activeModal && (
         <div className="custom-modal-overlay">
-          <div className="custom-modal-content" style={{maxWidth: activeModal.includes('Prod') ? '600px' : '400px'}}>
+          <div className="custom-modal-content" style={{maxWidth: activeModal === 'viewOrder' ? '700px' : (activeModal.includes('Prod') ? '600px' : '400px')}}>
             
             {(activeModal === 'addProd' || activeModal === 'editProd') && (
               <form onSubmit={handleSaveProduct}>
@@ -133,8 +161,7 @@ const AdminDashboard = () => {
               <form onSubmit={saveCategory}>
                 <h3>Tạo Danh Mục</h3>
                 <input className="admin-input" style={{marginTop:15}} placeholder="Tên danh mục" required onChange={e=>setCatForm({...catForm, name:e.target.value})}/>
-                <textarea className="admin-input" placeholder="Mô tả" onChange={e=>setCatForm({...catForm, description:e.target.value})}/>
-                <button type="submit" className="btn btn-primary" style={{width:'100%'}}>Xác nhận</button>
+                <button type="submit" className="btn btn-primary" style={{width:'100%', marginTop:10}}>Xác nhận</button>
                 <button type="button" onClick={()=>setActiveModal(null)} style={{width:'100%', background:'none', border:'none', marginTop:5}}>Hủy</button>
               </form>
             )}
@@ -147,6 +174,7 @@ const AdminDashboard = () => {
                   {activeModal === 'addAttrSeg' && '➕ Thêm Phân Khúc'}
                 </h3>
                 <input className="admin-input" style={{marginTop:15}} placeholder="Nhập tên mới..." value={genericAttrForm} onChange={e=>setGenericAttrForm(e.target.value)}/>
+
                 <button className="btn btn-primary" style={{width:'100%'}} onClick={()=>{
                   if(activeModal === 'addAttrType') saveAttribute('type');
                   if(activeModal === 'addAttrStyle') saveAttribute('style');
@@ -168,6 +196,32 @@ const AdminDashboard = () => {
               </div>
             )}
 
+            {activeModal === 'viewOrder' && targetData && (
+              <div>
+                <h3>Chi tiết đơn hàng #{targetData.id}</h3>
+                <p>Khách hàng: <b>{targetData.User?.username}</b> ({targetData.User?.email})</p>
+                <div style={{maxHeight:'300px', overflowY:'auto', margin:'15px 0'}}>
+                  <table className="admin-table" style={{fontSize:'0.9rem'}}>
+                    <thead><tr><th>Sản phẩm</th><th>SL</th><th>Giá</th><th>Tổng</th></tr></thead>
+                    <tbody>
+                      {targetData.OrderItems?.map(item => (
+                        <tr key={item.id}>
+                          <td>{item.Product?.name || 'Sản phẩm đã xóa'}</td>
+                          <td>x{item.quantity}</td>
+                          <td>{Number(item.priceAtTime).toLocaleString()} ₫</td>
+                          <td>{(Number(item.priceAtTime) * item.quantity).toLocaleString()} ₫</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div style={{textAlign:'right', fontSize:'1.1rem'}}>
+                  Tổng cộng: <b style={{color:'var(--primary)'}}>{Number(targetData.totalAmount).toLocaleString()} ₫</b>
+                </div>
+                <button className="btn btn-primary" style={{width:'100%', marginTop:15}} onClick={()=>setActiveModal(null)}>Đóng</button>
+              </div>
+            )}
+
           </div>
         </div>
       )}
@@ -178,6 +232,7 @@ const AdminDashboard = () => {
         {/* SEPARATE SIDEBAR MENU ITEMS FOR ALL CONFIGURATIONS */}
         <div className="admin-sidebar">
           <div className={`admin-sidebar-item ${tab === 'orders' ? 'active' : ''}`} onClick={()=>setTab('orders')}><ShoppingBag size={18}/> Đơn hàng</div>
+          <div className={`admin-sidebar-item ${tab === 'tx' ? 'active' : ''}`} onClick={()=>setTab('tx')}><Activity size={18}/> Lịch sử giao dịch</div>
           <div className={`admin-sidebar-item ${tab === 'products' ? 'active' : ''}`} onClick={()=>setTab('products')}><Package size={18}/> Sản phẩm</div>
           <div className="sidebar-divider" style={{height:'1px', background:'#eee', margin:'10px 25px'}}></div>
           
@@ -195,10 +250,42 @@ const AdminDashboard = () => {
           {tab === 'orders' && (
             <><h2>Đơn hàng</h2><table className="admin-table"><thead><tr><th>Mã</th><th>Người mua</th><th>Tiền</th><th>Tình trạng</th><th>Xử lý</th></tr></thead><tbody>
               {orders.map(o=>(<tr key={o.id}><td>#{o.id}</td><td>{o.User?.username}</td><td>{Number(o.totalAmount).toLocaleString()}</td><td><span className={`badge-${o.status}`}>{o.status}</span></td>
-              <td>{o.status==='pending' && <div style={{display:'flex',gap:5}}>
-                <button onClick={()=>{setTargetData(o);setActiveModal('confirmApr')}} className="action-btn btn-approve"><Check size={12}/></button>
-                <button onClick={()=>{setTargetData(o);setActiveModal('confirmRej')}} className="action-btn btn-reject"><X size={12}/></button>
-              </div>}</td></tr>))}
+              <td><div style={{display:'flex',gap:5}}>
+                <button onClick={()=>{setTargetData(o);setActiveModal('viewOrder')}} className="action-btn" style={{background:'#3498db',color:'#fff'}} title="Chi tiết"><Eye size={12}/></button>
+                {o.status==='pending' && <>
+                  <button onClick={()=>{setTargetData(o);setActiveModal('confirmApr')}} className="action-btn btn-approve" title="Phê duyệt"><Check size={12}/></button>
+                  <button onClick={()=>{setTargetData(o);setActiveModal('confirmRej')}} className="action-btn btn-reject" title="Từ chối"><X size={12}/></button>
+                </>}
+              </div></td></tr>))}
+            </tbody></table></>
+          )}
+
+          {tab === 'tx' && (
+            <><h2>Lịch sử giao dịch (Toàn hệ thống)</h2>
+            <table className="admin-table"><thead><tr><th>Mã GD</th><th>Thời gian</th><th>Khách hàng</th><th>Loại</th><th>Số tiền</th><th>Nội dung</th><th>Chi tiết</th></tr></thead><tbody>
+              {allTx.map(t=>(<tr key={t.id}>
+                <td>#{t.id}</td>
+                <td>{new Date(t.createdAt).toLocaleString('vi-VN')}</td>
+                <td><b>{t.User?.username || 'Ẩn danh'}</b><br/><small style={{color:'var(--text-muted)'}}>{t.User?.email}</small></td>
+                <td><span className={`badge-${t.type==='deposit'?'paid':'pending'}`}>{t.type === 'deposit' ? 'Nạp tiền' : 'Thanh toán'}</span></td>
+                <td style={{color: t.type==='deposit' ? '#27ae60' : '#e74c3c', fontWeight:600}}>
+                  {t.type==='deposit'?'+':'-'}{Number(t.amount).toLocaleString()} ₫
+                </td>
+                <td>{t.description}</td>
+                <td>
+                  {t.type === 'payment' && (() => {
+                    const match = t.description.match(/#(\d+)/);
+                    if (match) {
+                      const orderId = Number(match[1]);
+                      const linkedOrder = orders.find(o => o.id === orderId);
+                      if (linkedOrder) {
+                        return <button onClick={()=>{setTargetData(linkedOrder);setActiveModal('viewOrder')}} className="action-btn" style={{background:'#3498db',color:'#fff', padding:'2px 5px', fontSize:'0.75rem', width:'auto'}}><Eye size={12} style={{marginRight:3, display:'inline-block'}}/> ĐH</button>
+                      }
+                    }
+                    return null;
+                  })()}
+                </td>
+              </tr>))}
             </tbody></table></>
           )}
 
@@ -206,8 +293,13 @@ const AdminDashboard = () => {
             <>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}><h2>📦 Kho Sản phẩm</h2>
               <button className="btn btn-primary" onClick={()=>{setProdForm({name:'',price:'',stock:10,type:'',style:'',segment:'',categoryId:'',mainImage:''}); setActiveModal('addProd')}}><Plus size={16}/> Thêm</button></div>
-              <table className="admin-table"><thead><tr><th>SP</th><th>Phân loại</th><th>Kho</th><th></th></tr></thead><tbody>
-                {products.map(p=>(<tr key={p.id}><td>{p.name}</td><td><small>{p.type} | {p.room}</small></td><td>{p.stock}</td>
+              <table className="admin-table"><thead><tr><th>Sản phẩm</th><th>Phân loại</th><th>Phong cách</th><th>Phân khúc</th><th>Kho</th><th>Xử lý</th></tr></thead><tbody>
+                {products.map(p=>(<tr key={p.id}>
+                <td><div style={{display:'flex', alignItems:'center', gap:10}}><img src={p.mainImage} style={{width:40,height:40,objectFit:'cover',borderRadius:5}} alt="img"/> <b>{p.name}</b></div></td>
+                <td><small>{p.type} <br/><span style={{color:'var(--primary)'}}>{p.room}</span></small></td>
+                <td><small>{p.style}</small></td>
+                <td><small>{p.segment}</small></td>
+                <td>{p.stock}</td>
                 <td><div style={{display:'flex',gap:10}}><Edit2 size={16} color="#3498db" style={{cursor:'pointer'}} onClick={()=>{setTargetData(p); setProdForm({...p}); setActiveModal('editProd');}}/>
                 <Trash size={16} color="#e74c3c" style={{cursor:'pointer'}} onClick={()=>{setTargetData(p);setActiveModal('confirmDelPrd')}}/></div></td></tr>))}
               </tbody></table>
@@ -219,8 +311,8 @@ const AdminDashboard = () => {
           {tab === 'cat' && (
             <>
               <div style={{display:'flex',justifyContent:'space-between',marginBottom:20}}><h2>📁 Quản lý Danh mục</h2><button className="btn btn-primary" onClick={()=>setActiveModal('addCat')}>+ Thêm mới</button></div>
-              <table className="admin-table"><thead><tr><th>Tên</th><th>Mô tả</th><th>⚙️</th></tr></thead><tbody>
-                {categories.map(c=>(<tr key={c.id}><td><b>{c.name}</b></td><td>{c.description}</td><td><Trash size={16} color="#e74c3c" style={{cursor:'pointer'}} onClick={async ()=>{await axios.delete(`http://localhost:5000/api/categories/${c.id}`,{headers}); triggerToast('Đã xóa'); fetchData();}}/></td></tr>))}
+              <table className="admin-table"><thead><tr><th>Tên</th><th>⚙️</th></tr></thead><tbody>
+                {categories.map(c=>(<tr key={c.id}><td><b>{c.name}</b></td><td><Trash size={16} color="#e74c3c" style={{cursor:'pointer'}} onClick={async ()=>{await axios.delete(`http://localhost:5000/api/categories/${c.id}`,{headers}); triggerToast('Đã xóa'); fetchData();}}/></td></tr>))}
               </tbody></table>
             </>
           )}
@@ -229,7 +321,7 @@ const AdminDashboard = () => {
             <>
               <div style={{display:'flex',justifyContent:'space-between',marginBottom:20}}><h2>🛋️ Quản lý Loại Nội Thất</h2><button className="btn btn-primary" onClick={()=>{setGenericAttrForm(''); setActiveModal('addAttrType')}}>+ Thêm Loại</button></div>
               <table className="admin-table"><thead><tr><th>ID</th><th>Tên Loại Nội Thất</th><th>Xóa</th></tr></thead><tbody>
-                {typeOpts.map(t=>(<tr key={t.id}><td>#{t.id}</td><td style={{fontWeight:600}}>{t.name}</td><td><Trash size={16} color="#e74c3c" style={{cursor:'pointer'}} onClick={()=>deleteAttribute(t.id)}/></td></tr>))}
+                {typeOpts.map(t=>(<tr key={t.id}><td>#{t.id}</td><td style={{fontWeight:600}}>{t.name}</td><td><Trash size={16} color="#e74c3c" style={{cursor:'pointer'}} onClick={()=>deleteAttribute(t.id, 'type')}/></td></tr>))}
               </tbody></table>
             </>
           )}
@@ -238,7 +330,7 @@ const AdminDashboard = () => {
             <>
               <div style={{display:'flex',justifyContent:'space-between',marginBottom:20}}><h2>🎨 Quản lý Phong Cách</h2><button className="btn btn-primary" onClick={()=>{setGenericAttrForm(''); setActiveModal('addAttrStyle')}}>+ Thêm Phong Cách</button></div>
               <table className="admin-table"><thead><tr><th>ID</th><th>Tên Phong Cách</th><th>Xóa</th></tr></thead><tbody>
-                {styleOpts.map(s=>(<tr key={s.id}><td>#{s.id}</td><td style={{fontWeight:600}}>{s.name}</td><td><Trash size={16} color="#e74c3c" style={{cursor:'pointer'}} onClick={()=>deleteAttribute(s.id)}/></td></tr>))}
+                {styleOpts.map(s=>(<tr key={s.id}><td>#{s.id}</td><td style={{fontWeight:600}}>{s.name}</td><td><Trash size={16} color="#e74c3c" style={{cursor:'pointer'}} onClick={()=>deleteAttribute(s.id, 'style')}/></td></tr>))}
               </tbody></table>
             </>
           )}
@@ -247,7 +339,7 @@ const AdminDashboard = () => {
             <>
               <div style={{display:'flex',justifyContent:'space-between',marginBottom:20}}><h2>💰 Quản lý Phân Khúc Giá</h2><button className="btn btn-primary" onClick={()=>{setGenericAttrForm(''); setActiveModal('addAttrSeg')}}>+ Thêm Phân Khúc</button></div>
               <table className="admin-table"><thead><tr><th>ID</th><th>Tên Phân Khúc</th><th>Xóa</th></tr></thead><tbody>
-                {segOpts.map(s=>(<tr key={s.id}><td>#{s.id}</td><td style={{fontWeight:600}}>{s.name}</td><td><Trash size={16} color="#e74c3c" style={{cursor:'pointer'}} onClick={()=>deleteAttribute(s.id)}/></td></tr>))}
+                {segOpts.map(s=>(<tr key={s.id}><td>#{s.id}</td><td style={{fontWeight:600}}>{s.name}</td><td><Trash size={16} color="#e74c3c" style={{cursor:'pointer'}} onClick={()=>deleteAttribute(s.id, 'segment')}/></td></tr>))}
               </tbody></table>
             </>
           )}

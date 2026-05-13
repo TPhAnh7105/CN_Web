@@ -8,7 +8,9 @@ const categoryRoutes = require('./src/routes/category.routes');
 const authRoutes = require('./src/routes/auth.routes');
 const orderRoutes = require('./src/routes/order.routes');
 const userRoutes = require('./src/routes/user.routes');
-const attributeRoutes = require('./src/routes/attribute.routes');
+const typeRoutes = require('./src/routes/type.routes');
+const styleRoutes = require('./src/routes/style.routes');
+const segmentRoutes = require('./src/routes/segment.routes');
 
 const app = express();
 
@@ -28,7 +30,9 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/users', userRoutes);
-app.use('/api/attributes', attributeRoutes);
+app.use('/api/types', typeRoutes);
+app.use('/api/styles', styleRoutes);
+app.use('/api/segments', segmentRoutes);
 
 // Basic route
 app.get('/', (req, res) => {

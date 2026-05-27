@@ -6,6 +6,7 @@ const admin = require('../middleware/admin.middleware');
 
 router.get('/profile', auth, userController.getProfile);
 router.put('/profile', auth, userController.updateProfile);
+router.put('/change-password', auth, userController.changePassword);
 router.post('/deposit', auth, userController.deposit);
 router.get('/transactions', auth, userController.getTransactions);
 

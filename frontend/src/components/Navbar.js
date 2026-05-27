@@ -17,7 +17,33 @@ const Navbar = () => {
   const navigate = useNavigate();
 
   const { cartCount } = useCart();
-  const { isLoggedIn, logout, user } = useAuth();
+  const { isLoggedIn, logout, user, token } = useAuth();
+  const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
+  const [showNewOrderNotification, setShowNewOrderNotification] = useState(false);
+
+  // Poll for pending orders if admin
+  useEffect(() => {
+    let interval;
+    if (isLoggedIn && user?.role === 'admin' && token) {
+      const checkPending = async () => {
+        try {
+          const res = await axios.get('http://localhost:5000/api/orders/pending-count', {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          setPendingOrdersCount(prev => {
+            if (res.data.count > prev && prev !== 0) {
+              setShowNewOrderNotification(true);
+              setTimeout(() => setShowNewOrderNotification(false), 5000);
+            }
+            return res.data.count;
+          });
+        } catch (error) {}
+      };
+      checkPending(); // initial fetch
+      interval = setInterval(checkPending, 5000); // poll every 5s
+    }
+    return () => { if (interval) clearInterval(interval); };
+  }, [isLoggedIn, user, token]);
 
   // Fetching real-time search results while typing
   useEffect(() => {
@@ -149,12 +175,19 @@ const Navbar = () => {
 
           {/* Direct Quick Access Link ONLY for Admins */}
           {user?.role === 'admin' && (
-            <Link to="/admin" style={{ textDecoration: 'none', fontWeight: 600, color: 'var(--secondary)', border: '1px solid var(--secondary)', padding: '5px 12px', borderRadius: '20px', fontSize: '0.9rem', transition: 'all 0.3s ease', display: 'flex', alignItems: 'center', gap: '5px' }}
-              onMouseOver={e => { e.currentTarget.style.background = 'var(--secondary)'; e.currentTarget.style.color = 'var(--primary)'; }}
-              onMouseOut={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--secondary)'; }}
-            >
-              <Package size={15} /> QUẢN LÝ
-            </Link>
+            <div style={{ position: 'relative' }}>
+              <Link to="/admin" style={{ textDecoration: 'none', fontWeight: 600, color: 'var(--secondary)', border: '1px solid var(--secondary)', padding: '5px 12px', borderRadius: '20px', fontSize: '0.9rem', transition: 'all 0.3s ease', display: 'flex', alignItems: 'center', gap: '5px' }}
+                onMouseOver={e => { e.currentTarget.style.background = 'var(--secondary)'; e.currentTarget.style.color = 'var(--primary)'; }}
+                onMouseOut={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--secondary)'; }}
+              >
+                <Package size={15} /> QUẢN LÝ
+              </Link>
+              {pendingOrdersCount > 0 && (
+                <span style={{ position: 'absolute', top: '-6px', right: '-8px', background: '#e74c3c', color: 'white', fontSize: '0.7rem', padding: '2px 6px', borderRadius: '12px', fontWeight: 'bold', pointerEvents: 'none', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>
+                  {pendingOrdersCount}
+                </span>
+              )}
+            </div>
           )}
         </div>
 
@@ -185,9 +218,12 @@ const Navbar = () => {
                     onClick={() => { setShowLiveSearch(false); setSearchQuery(''); }}
                   >
                     <img src={item.mainImage} alt="" className="live-result-img" />
-                    <div style={{ flex: 1, overflow: 'hidden' }}>
+                    <div className="live-result-info">
                       <div className="live-result-name">{item.name}</div>
-                      <div className="live-result-price">{Number(item.price).toLocaleString('vi-VN')} ₫</div>
+                      <div className="live-result-price">
+                        {item.discountPrice && <span style={{textDecoration: 'line-through', color: '#999', fontSize: '0.8rem', marginRight: '5px'}}>{Number(item.price).toLocaleString('vi-VN')} ₫</span>}
+                        {Number(item.discountPrice || item.price).toLocaleString('vi-VN')} ₫
+                      </div>
                     </div>
                   </Link>
                 ))}
@@ -256,6 +292,20 @@ const Navbar = () => {
           )}
         </div>
       </div>
+
+      {/* New Order Notification Toast */}
+      {showNewOrderNotification && (
+        <div style={{ position: 'fixed', top: '90px', right: '20px', background: '#fff', borderLeft: '4px solid #f39c12', padding: '15px 20px', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', zIndex: 9999, display: 'flex', alignItems: 'center', gap: '15px', animation: 'slideIn 0.3s ease-out' }}>
+          <div style={{ background: '#fef5e7', padding: '10px', borderRadius: '50%' }}>
+            <Package color="#f39c12" size={24} />
+          </div>
+          <div>
+            <h4 style={{ margin: 0, color: '#333' }}>Đơn hàng mới!</h4>
+            <p style={{ margin: '5px 0 0', fontSize: '0.85rem', color: '#666' }}>Bạn có đơn hàng đang chờ xét duyệt.</p>
+          </div>
+          <button onClick={() => setShowNewOrderNotification(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', alignSelf: 'flex-start', color: '#999', fontSize: '1.2rem', padding: 0 }}>×</button>
+        </div>
+      )}
     </nav>
   );
 };

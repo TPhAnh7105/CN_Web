@@ -77,9 +77,16 @@ const Cart = () => {
                 <img src={item.image || item.mainImage} alt={item.name} className="cart-item-img" />
                 <div className="cart-item-info">
                   <h3 style={{ color: 'var(--primary)', marginBottom: '5px' }}>{item.name}</h3>
-                  <p style={{ color: 'var(--secondary)', fontWeight: '600', fontSize: '1.1rem' }}>
-                    {Number(item.price).toLocaleString('vi-VN')} ₫
-                  </p>
+                  <div>
+                    {item.discountPrice && (
+                      <span style={{ textDecoration: 'line-through', fontSize: '0.85rem', color: 'var(--text-muted)', marginRight: '8px' }}>
+                        {Number(item.price).toLocaleString('vi-VN')} ₫
+                      </span>
+                    )}
+                    <span style={{ color: 'var(--secondary)', fontWeight: '600', fontSize: '1.1rem' }}>
+                      {Number(item.discountPrice || item.price).toLocaleString('vi-VN')} ₫
+                    </span>
+                  </div>
                 </div>
                 <div className="cart-item-quantity">
                   <button className="qty-btn" onClick={() => updateQuantity(item.id, item.quantity - 1)}>
@@ -92,7 +99,7 @@ const Cart = () => {
                 </div>
                 <div style={{ minWidth: '120px', textAlign: 'right' }}>
                   <p style={{ fontWeight: '700', color: 'var(--primary)' }}>
-                    {(Number(item.price) * item.quantity).toLocaleString('vi-VN')} ₫
+                    {(Number(item.discountPrice || item.price) * item.quantity).toLocaleString('vi-VN')} ₫
                   </p>
                 </div>
                 <button
@@ -150,7 +157,7 @@ const Cart = () => {
             <ShoppingBag size={60} color="var(--secondary)" style={{ marginBottom: '20px' }} />
             <h2>Xác nhận đặt hàng?</h2>
             <p style={{ color: 'var(--text-muted)', margin: '15px 0 30px' }}>
-              Yêu cầu đặt hàng tổng giá trị <b>{cartTotal.toLocaleString()} ₫</b> của bạn sẽ được gửi tới Ban Quản Trị phê duyệt.
+              Yêu cầu đặt hàng tổng giá trị <b>{cartTotal.toLocaleString()} ₫</b> của bạn sẽ được gửi tới bộ phận kiểm duyệt.
             </p>
             <div style={{ display: 'flex', gap: '15px' }}>
               <button className="btn btn-primary" style={{ flex: 1 }} onClick={confirmAndPlaceOrder}>Chốt đơn</button>
@@ -167,11 +174,11 @@ const Cart = () => {
             <CheckCircle size={70} color="#27ae60" style={{ marginBottom: '20px' }} />
             <h2 style={{ color: 'var(--primary)' }}>🎉 Gửi yêu cầu thành công!</h2>
             <p style={{ color: 'var(--text-muted)', marginTop: '15px', lineHeight: 1.6 }}>
-              Cảm ơn bạn! Đơn hàng đã được chuyển trạng thái <b>Chờ duyệt</b>. <br/>
-              Vui lòng kiên nhẫn đợi Admin xác nhận và trừ tiền ví sau ít phút.
+              Cảm ơn bạn! Đơn hàng đã được chuyển trạng thái <b>Chờ duyệt</b>. <br />
+              Vui lòng kiên nhẫn đợi phản hồi.
             </p>
-            <button 
-              className="btn-add-to-cart" 
+            <button
+              className="btn-add-to-cart"
               style={{ width: '100%', marginTop: '30px', justifyContent: 'center' }}
               onClick={() => { setIsSuccessModalOpen(false); navigate('/products'); }}
             >

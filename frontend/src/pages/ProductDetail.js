@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ShoppingCart, ChevronLeft, Package, Layers, Palette, Tag, Box } from 'lucide-react';
+import { ShoppingCart, ChevronLeft, Package, Layers, Palette, Tag, Box, Star, User } from 'lucide-react';
 import axios from 'axios';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -10,6 +11,13 @@ const ProductDetail = () => {
   const [loading, setLoading] = useState(true);
   const [addedToCart, setAddedToCart] = useState(false);
   const { addToCart } = useCart();
+  const { token, user } = useAuth();
+
+  const [reviews, setReviews] = useState([]);
+  const [rating, setRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [comment, setComment] = useState('');
+  const [reviewMsg, setReviewMsg] = useState('');
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -19,10 +27,48 @@ const ProductDetail = () => {
       } catch (error) {
         console.error('Error fetching product:', error.message);
       }
+      try {
+        const resReviews = await axios.get(`http://localhost:5000/api/reviews/product/${id}`);
+        setReviews(resReviews.data);
+      } catch (error) {
+        console.error('Error fetching reviews:', error.message);
+      }
       setLoading(false);
     };
     fetchProduct();
   }, [id]);
+
+  const submitReview = async (e) => {
+    e.preventDefault();
+    if (!token) {
+      setReviewMsg('Vui lòng đăng nhập để đánh giá');
+      return;
+    }
+    if (rating === 0) {
+      setReviewMsg('Vui lòng chọn số sao đánh giá');
+      return;
+    }
+    try {
+      const res = await axios.post('http://localhost:5000/api/reviews', {
+        productId: id,
+        rating,
+        comment
+      }, { headers: { Authorization: `Bearer ${token}` } });
+
+      setReviews([res.data.review, ...reviews]); // Giả lập update thêm user info sau
+      setComment('');
+      setRating(0);
+      setReviewMsg('Cảm ơn bạn đã đánh giá!');
+      setTimeout(() => setReviewMsg(''), 3000);
+
+      // Refetch reviews
+      const resReviews = await axios.get(`http://localhost:5000/api/reviews/product/${id}`);
+      setReviews(resReviews.data);
+
+    } catch (error) {
+      setReviewMsg('Có lỗi xảy ra');
+    }
+  };
 
   const handleAddToCart = () => {
     addToCart(product);
@@ -47,7 +93,8 @@ const ProductDetail = () => {
     );
   }
 
-  const price = Number(product.price).toLocaleString('vi-VN');
+  const price = product.discountPrice ? Number(product.discountPrice).toLocaleString('vi-VN') : Number(product.price).toLocaleString('vi-VN');
+  const originalPrice = product.discountPrice ? Number(product.price).toLocaleString('vi-VN') : null;
   const inStock = product.stock > 0;
 
   return (
@@ -82,9 +129,16 @@ const ProductDetail = () => {
             </h1>
 
             {/* Price */}
-            <p style={{ fontSize: '2rem', fontWeight: '700', color: 'var(--secondary)', marginBottom: '25px' }}>
-              {price} ₫
-            </p>
+            <div style={{ marginBottom: '25px' }}>
+              {originalPrice && (
+                <div style={{ textDecoration: 'line-through', fontSize: '1.2rem', color: '#e74c3c', marginBottom: '5px' }}>
+                  {originalPrice} ₫
+                </div>
+              )}
+              <p style={{ fontSize: '2rem', fontWeight: '700', color: 'var(--secondary)' }}>
+                {price} ₫
+              </p>
+            </div>
 
             {/* Tags */}
             <div className="product-detail-tags">
@@ -143,6 +197,77 @@ const ProductDetail = () => {
               <ShoppingCart size={20} />
               {addedToCart ? 'Đã thêm vào giỏ hàng ✓' : 'Thêm vào giỏ hàng'}
             </button>
+          </div>
+        </div>
+
+        {/* Reviews Section */}
+        <div style={{ marginTop: '60px', borderTop: '1px solid #eee', paddingTop: '40px' }}>
+          <h2 style={{ fontSize: '1.8rem', color: 'var(--primary)', marginBottom: '30px' }}>Đánh giá của khách hàng</h2>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px' }}>
+            {/* Review Form */}
+            <div style={{ background: 'white', padding: '30px', borderRadius: '15px', boxShadow: 'var(--shadow-sm)', height: 'fit-content' }}>
+              <h3 style={{ marginBottom: '20px', color: 'var(--primary)' }}>Viết đánh giá</h3>
+              {reviewMsg && <div style={{ padding: '10px', background: '#e8f6ec', color: '#27ae60', borderRadius: '8px', marginBottom: '15px' }}>{reviewMsg}</div>}
+              <form onSubmit={submitReview}>
+                <div style={{ marginBottom: '15px' }}>
+                  <label style={{ display: 'block', color: 'var(--text-muted)', marginBottom: '8px' }}>Chất lượng dịch vụ</label>
+                  <div style={{ display: 'flex', gap: '8px', padding: '5px 0' }}>
+                    {[1, 2, 3, 4, 5].map((starValue) => {
+                      const isLit = starValue <= (hoverRating || rating);
+                      return (
+                        <Star
+                          key={starValue}
+                          size={28}
+                          style={{ cursor: 'pointer', transition: 'color 0.2s, transform 0.1s' }}
+                          fill={isLit ? "#f1c40f" : "none"}
+                          color={isLit ? "#f1c40f" : "#ccc"}
+                          onClick={() => setRating(starValue)}
+                          onMouseEnter={() => setHoverRating(starValue)}
+                          onMouseLeave={() => setHoverRating(0)}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+                <div style={{ marginBottom: '15px' }}>
+                  <label style={{ display: 'block', color: 'var(--text-muted)', marginBottom: '8px' }}>Nhận xét của bạn</label>
+                  <textarea value={comment} onChange={e => setComment(e.target.value)} required placeholder="Chia sẻ cảm nhận của bạn về sản phẩm này..." style={{ width: '100%', padding: '15px', borderRadius: '8px', border: '1px solid #ddd', minHeight: '100px', resize: 'vertical' }}></textarea>
+                </div>
+                <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>Gửi đánh giá</button>
+              </form>
+            </div>
+
+            {/* Reviews List */}
+            <div>
+              {reviews.length === 0 ? (
+                <p style={{ color: 'var(--text-muted)' }}>Chưa có đánh giá nào cho sản phẩm này. Hãy là người đầu tiên!</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  {reviews.map(review => (
+                    <div key={review.id} style={{ background: 'white', padding: '20px', borderRadius: '12px', border: '1px solid #eee' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div style={{ width: '40px', height: '40px', background: 'var(--secondary)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                            <User size={20} />
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: '600', color: 'var(--primary)' }}>{review.User?.username || 'Khách'}</div>
+                            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{new Date(review.createdAt).toLocaleDateString('vi-VN')}</div>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: '2px', color: '#f1c40f' }}>
+                          {[...Array(5)].map((_, i) => (
+                            <Star key={i} size={16} fill={i < review.rating ? "currentColor" : "none"} color={i < review.rating ? "currentColor" : "#ddd"} />
+                          ))}
+                        </div>
+                      </div>
+                      <p style={{ color: 'var(--text-light)', lineHeight: '1.6' }}>{review.comment}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

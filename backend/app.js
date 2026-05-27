@@ -11,6 +11,7 @@ const userRoutes = require('./src/routes/user.routes');
 const typeRoutes = require('./src/routes/type.routes');
 const styleRoutes = require('./src/routes/style.routes');
 const segmentRoutes = require('./src/routes/segment.routes');
+const reviewRoutes = require('./src/routes/review.routes');
 
 const app = express();
 
@@ -33,6 +34,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/types', typeRoutes);
 app.use('/api/styles', styleRoutes);
 app.use('/api/segments', segmentRoutes);
+app.use('/api/reviews', reviewRoutes);
 
 // Basic route
 app.get('/', (req, res) => {

@@ -95,8 +95,12 @@ exports.updateProduct = async (req, res) => {
             return res.status(404).json({ message: 'Product not found' });
         }
         
-        const { name, price, stock, description, mainImage, categoryId, segment, type, style } = req.body;
+        const { name, price, discountPrice, stock, description, mainImage, categoryId, segment, type, style } = req.body;
         const updateData = { name, price, stock, description, mainImage, categoryId };
+        
+        if (discountPrice !== undefined) {
+            updateData.discountPrice = discountPrice;
+        }
         
         // Resolve type text to typeId if passed
         if (type !== undefined) {

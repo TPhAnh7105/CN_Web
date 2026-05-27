@@ -18,8 +18,9 @@ exports.checkout = async (req, res) => {
         for(const item of items) {
             const p = await Product.findByPk(item.productId);
             if(!p) throw new Error(`SP ID ${item.productId} ko tồn tại`);
-            total += Number(p.price) * item.quantity;
-            validItems.push({ productId: p.id, quantity: item.quantity, price: p.price });
+            const currentPrice = p.discountPrice ? Number(p.discountPrice) : Number(p.price);
+            total += currentPrice * item.quantity;
+            validItems.push({ productId: p.id, quantity: item.quantity, price: currentPrice });
         }
 
         // Fetch User and check balance
@@ -77,6 +78,16 @@ exports.getAllOrders = async (req, res) => {
         });
         res.json(orders);
     } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
+// GET PENDING COUNT (For admin polling)
+exports.getPendingOrdersCount = async (req, res) => {
+    try {
+        const count = await Order.count({ where: { status: 'pending' } });
+        res.json({ count });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
 };
 
 // 3. ADMIN APPROVE ORDER (Deduct stock + wallet balance ACTUALLY here)

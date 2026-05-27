@@ -33,7 +33,7 @@ const Login = () => {
         <div style={{ textAlign: 'center', marginBottom: '30px' }}>
           <LogIn size={40} color="var(--secondary)" style={{ marginBottom: '10px' }} />
           <h2 style={{ color: 'var(--primary)', fontSize: '1.8rem' }}>Đăng Nhập</h2>
-          <p style={{ color: 'var(--text-muted)', marginTop: '8px' }}>Chào mừng trở lại LuxeFurnish!</p>
+          <p style={{ color: 'var(--text-muted)', marginTop: '8px' }}>Chào mừng bạn đến với LuxeFurnish!</p>
         </div>
 
         {error && (
@@ -50,6 +50,9 @@ const Login = () => {
           <div className="auth-field">
             <Lock size={18} color="var(--text-muted)" />
             <input type="password" placeholder="Mật khẩu" value={password} onChange={e => setPassword(e.target.value)} required />
+          </div>
+          <div style={{ textAlign: 'right', marginBottom: '15px', marginTop: '-5px' }}>
+            <Link to="/forgot-password" style={{ color: 'var(--text-muted)', fontSize: '0.9rem', textDecoration: 'none' }}>Quên mật khẩu?</Link>
           </div>
           <button type="submit" className="btn-add-to-cart" style={{ width: '100%', justifyContent: 'center', marginTop: '10px' }} disabled={loading}>
             {loading ? 'Đang xử lý...' : 'Đăng nhập'}

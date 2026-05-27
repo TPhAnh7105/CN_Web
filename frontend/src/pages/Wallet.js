@@ -10,10 +10,14 @@ const WalletPage = () => {
   const [msg, setMsg] = useState('');
 
   const fetch = async () => {
-    const res = await axios.get('http://localhost:5000/api/users/profile', {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    setBalance(res.data.balance);
+    try {
+      const res = await axios.get('http://localhost:5000/api/users/profile', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setBalance(res.data.balance);
+    } catch (err) {
+      console.error("Error fetching wallet", err);
+    }
   };
 
   useEffect(() => { if(token) fetch(); }, [token]);

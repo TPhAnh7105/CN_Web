@@ -12,6 +12,7 @@ const OrderItem = require('./src/models/orderItem.model');
 const Segment = require('./src/models/segment.model');
 const Type = require('./src/models/type.model');
 const Style = require('./src/models/style.model');
+const Review = require('./src/models/review.model');
 
 const PORT = process.env.PORT || 5000;
 
@@ -20,7 +21,7 @@ const startServer = async () => {
         await connectDB();
 
         // Đồng bộ database
-        await sequelize.sync({ alter: true });
+        await sequelize.sync({ alter: false });
         console.log('✅ Đã đồng bộ tất cả các Models với MySQL!');
 
         app.listen(PORT, () => {

@@ -18,6 +18,11 @@ const ProductList = ({ products, loading, title = "Trending Now" }) => {
               <div className="product-card">
                 <div style={{ position: 'relative', overflow: 'hidden' }}>
                   <img src={product.image} alt={product.name} className="product-img" />
+                  {product.discountPercent && (
+                    <div style={{ position: 'absolute', top: '15px', left: '15px', background: '#e74c3c', color: 'white', padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: '700', boxShadow: 'var(--shadow-sm)' }}>
+                      -{product.discountPercent}%
+                    </div>
+                  )}
                   <button 
                     style={{ position: 'absolute', top: '15px', right: '15px', background: 'white', border: 'none', borderRadius: '50%', width: '35px', height: '35px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: 'var(--shadow-sm)' }}
                     onClick={(e) => e.preventDefault()}
@@ -30,7 +35,14 @@ const ProductList = ({ products, loading, title = "Trending Now" }) => {
                   <h3 className="product-title">{product.name}</h3>
                   {/* Tạm ẩn đánh giá sao */}
                   <div className="product-footer">
-                    <div className="product-price">{product.price} ₫</div>
+                    <div>
+                      {product.originalPrice && (
+                        <div style={{ textDecoration: 'line-through', fontSize: '0.8rem', color: '#e74c3c', marginBottom: '2px' }}>
+                          {product.originalPrice} ₫
+                        </div>
+                      )}
+                      <div className="product-price">{product.price} ₫</div>
+                    </div>
                     <span className="add-to-cart">
                       Xem chi tiết <ArrowRight size={16} />
                     </span>

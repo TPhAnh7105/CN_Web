@@ -9,10 +9,14 @@ const Transactions = () => {
 
   useEffect(() => {
     const load = async () => {
-      const res = await axios.get('http://localhost:5000/api/users/transactions', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setList(res.data);
+      try {
+        const res = await axios.get('http://localhost:5000/api/users/transactions', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setList(res.data);
+      } catch (err) {
+        console.error("Error fetching history", err);
+      }
     };
     if(token) load();
   }, [token]);

@@ -1,6 +1,7 @@
 const User = require('../models/user.model');
 const Transaction = require('../models/transaction.model');
 const { sequelize } = require('../config/db');
+const bcrypt = require('bcrypt');
 
 // Get current user profile
 exports.getProfile = async (req, res) => {
@@ -27,6 +28,31 @@ exports.updateProfile = async (req, res) => {
         
         await user.save();
         res.json({ success: true, user });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
+// Change Password
+exports.changePassword = async (req, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+        const user = await User.findByPk(req.user.id);
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        const isMatch = await bcrypt.compare(currentPassword, user.password);
+        if (!isMatch) {
+            return res.status(400).json({ message: 'Mật khẩu hiện tại không đúng' });
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(newPassword, salt);
+        await user.save();
+
+        res.json({ success: true, message: 'Đổi mật khẩu thành công' });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }

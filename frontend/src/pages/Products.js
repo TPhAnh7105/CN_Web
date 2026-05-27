@@ -46,7 +46,9 @@ const Products = () => {
           const mappedProducts = response.data.map(p => ({
             id: p.id,
             name: p.name,
-            price: Number(p.price).toLocaleString('vi-VN'),
+            price: p.discountPrice ? Number(p.discountPrice).toLocaleString('vi-VN') : Number(p.price).toLocaleString('vi-VN'),
+            originalPrice: p.discountPrice ? Number(p.price).toLocaleString('vi-VN') : null,
+            discountPercent: p.discountPrice ? Math.round((1 - p.discountPrice / p.price) * 100) : null,
             category: p.room || 'Nội thất', // use room as primary display category
             room: p.room,
             type: p.type,

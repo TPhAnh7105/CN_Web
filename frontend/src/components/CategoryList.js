@@ -8,31 +8,31 @@ const CategoryList = () => {
     {
       id: 1,
       name: 'Phòng khách',
-      image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?q=80&w=600&auto=format&fit=crop',
+      image: 'https://picsum.photos/seed/furn17/800/600',
       count: '3 sản phẩm'
     },
     {
       id: 2,
       name: 'Phòng ngủ',
-      image: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?q=80&w=600&auto=format&fit=crop',
+      image: 'https://picsum.photos/seed/furn18/800/600',
       count: '3 sản phẩm'
     },
     {
       id: 3,
       name: 'Phòng ăn & Bếp',
-      image: 'https://images.unsplash.com/photo-1615066390971-03e4e1c36ddf?q=80&w=600&auto=format&fit=crop',
+      image: 'https://picsum.photos/seed/furn19/800/600',
       count: '2 sản phẩm'
     },
     {
       id: 4,
       name: 'Phòng làm việc',
-      image: 'https://images.unsplash.com/photo-1505843490538-5133c6c7d0e1?q=80&w=600&auto=format&fit=crop',
+      image: 'https://picsum.photos/seed/furn20/800/600',
       count: '2 sản phẩm'
     },
     {
       id: 5,
       name: 'Ngoài trời',
-      image: 'https://images.unsplash.com/photo-1596079890744-c1a0462d0975?q=80&w=600&auto=format&fit=crop',
+      image: 'https://picsum.photos/seed/furn21/800/600',
       count: '1 sản phẩm'
     }
   ];

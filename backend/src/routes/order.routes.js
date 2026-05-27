@@ -8,6 +8,7 @@ const admin = require('../middleware/admin.middleware');
 router.post('/checkout', auth, orderController.checkout);
 
 // Admin endpoints
+router.get('/pending-count', auth, admin, orderController.getPendingOrdersCount);
 router.get('/', auth, admin, orderController.getAllOrders);
 router.put('/:id/approve', auth, admin, orderController.approveOrder);
 router.put('/:id/reject', auth, admin, orderController.rejectOrder);

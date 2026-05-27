@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { ShoppingBag, Package, Users, Check, X, Trash, Plus, Edit2, AlertCircle, CheckCircle2, FolderOpen, Sofa, Palette, Coins, Activity, Eye } from 'lucide-react';
+import { ShoppingBag, Package, Users, Check, X, Trash, Plus, Edit2, AlertCircle, CheckCircle2, FolderOpen, Sofa, Palette, Coins, Activity, Eye, Percent, TrendingUp } from 'lucide-react';
 
 const AdminDashboard = () => {
   const { token, user } = useAuth();
@@ -27,10 +27,11 @@ const AdminDashboard = () => {
   const [targetData, setTargetData] = useState(null);
   const [toast, setToast] = useState({ show: false, msg: '', type: 'success' });
 
-  // Form Bindings
   const [prodForm, setProdForm] = useState({ name: '', price: '', stock: 10, type: '', style: '', segment: '', mainImage: '', categoryId: '' });
   const [catForm, setCatForm] = useState({ name: '' });
   const [genericAttrForm, setGenericAttrForm] = useState(''); // simplified string name
+  const [discountForm, setDiscountForm] = useState({ promoPrice: '' });
+  const [searchProd, setSearchProd] = useState('');
 
   const headers = { Authorization: `Bearer ${token}` };
   const triggerToast = (msg, type='success') => {
@@ -222,6 +223,50 @@ const AdminDashboard = () => {
               </div>
             )}
 
+            {activeModal === 'applyPromo' && targetData && (
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                try {
+                  const newPromoPrice = Number(discountForm.promoPrice);
+                  const origPrice = Number(targetData.price);
+                  
+                  if (newPromoPrice <= 0 || newPromoPrice >= origPrice) return triggerToast('Giá khuyến mãi phải nhỏ hơn giá gốc và lớn hơn 0', 'error');
+                  
+                  await axios.put(`http://localhost:5000/api/products/${targetData.id}`, {
+                    ...targetData,
+                    discountPrice: newPromoPrice
+                  }, { headers });
+                  triggerToast('Cập nhật giá khuyến mãi thành công');
+                  setActiveModal(null);
+                  fetchData();
+                } catch(err) { triggerToast('Lỗi', 'error'); }
+              }}>
+                <h3>🏷️ Khuyến mãi: {targetData.name}</h3>
+                <div style={{marginTop:15}}>
+                  <p style={{marginBottom:10}}>Giá gốc: <b>{Number(targetData.price).toLocaleString()} ₫</b></p>
+                  <label>Giá khuyến mãi mới (₫)</label>
+                  <input type="number" className="admin-input" min="0" required value={discountForm.promoPrice} onChange={e=>setDiscountForm({...discountForm, promoPrice: e.target.value})} placeholder="Nhập giá khuyến mãi" />
+                  {discountForm.promoPrice > 0 && discountForm.promoPrice < (targetData.price) && (
+                     <p style={{marginTop:10, color:'#e74c3c'}}>Phần trăm giảm: <b>{Math.round((1 - discountForm.promoPrice / targetData.price) * 100)}%</b></p>
+                  )}
+                </div>
+                <button type="submit" className="btn btn-primary" style={{width:'100%', marginTop:15}}>Lưu Khuyến Mãi</button>
+                <button type="button" onClick={async () => {
+                  if(!targetData.discountPrice) return setActiveModal(null);
+                  try {
+                    await axios.put(`http://localhost:5000/api/products/${targetData.id}`, {
+                      ...targetData,
+                      discountPrice: null
+                    }, { headers });
+                    triggerToast('Đã xóa khuyến mãi');
+                    setActiveModal(null);
+                    fetchData();
+                  } catch(err) { triggerToast('Lỗi', 'error'); }
+                }} className="btn btn-secondary" style={{width:'100%', marginTop:10, background: '#e74c3c'}}>Xóa khuyến mãi</button>
+                <button type="button" onClick={()=>setActiveModal(null)} style={{width:'100%', background:'none', border:'none', marginTop:5}}>Đóng</button>
+              </form>
+            )}
+
           </div>
         </div>
       )}
@@ -234,6 +279,7 @@ const AdminDashboard = () => {
           <div className={`admin-sidebar-item ${tab === 'orders' ? 'active' : ''}`} onClick={()=>setTab('orders')}><ShoppingBag size={18}/> Đơn hàng</div>
           <div className={`admin-sidebar-item ${tab === 'tx' ? 'active' : ''}`} onClick={()=>setTab('tx')}><Activity size={18}/> Lịch sử giao dịch</div>
           <div className={`admin-sidebar-item ${tab === 'products' ? 'active' : ''}`} onClick={()=>setTab('products')}><Package size={18}/> Sản phẩm</div>
+          <div className={`admin-sidebar-item ${tab === 'promo' ? 'active' : ''}`} onClick={()=>setTab('promo')}><Percent size={18}/> Khuyến mãi</div>
           <div className="sidebar-divider" style={{height:'1px', background:'#eee', margin:'10px 25px'}}></div>
           
           <div className={`admin-sidebar-item ${tab === 'cat' ? 'active' : ''}`} onClick={()=>setTab('cat')}><FolderOpen size={18}/> Danh mục</div>
@@ -243,9 +289,72 @@ const AdminDashboard = () => {
           
           <div className="sidebar-divider" style={{height:'1px', background:'#eee', margin:'10px 25px'}}></div>
           <div className={`admin-sidebar-item ${tab === 'users' ? 'active' : ''}`} onClick={()=>setTab('users')}><Users size={18}/> Khách hàng</div>
+          <div className={`admin-sidebar-item ${tab === 'stats' ? 'active' : ''}`} onClick={()=>setTab('stats')}><TrendingUp size={18}/> Thống kê & Doanh thu</div>
         </div>
 
         <div className="admin-card">
+
+          {tab === 'stats' && (() => {
+            const approvedOrders = orders.filter(o => o.status === 'approved');
+            const totalRev = approvedOrders.reduce((sum, o) => sum + Number(o.totalAmount), 0);
+            const totalDeposits = allTx.filter(t => t.type === 'deposit').reduce((sum, t) => sum + Number(t.amount), 0);
+            
+            const sales = {};
+            approvedOrders.forEach(o => {
+                if (o.OrderItems) {
+                    o.OrderItems.forEach(item => {
+                        if(!sales[item.productId]) sales[item.productId] = { name: item.Product?.name || 'Sản phẩm đã xóa', qty: 0, rev: 0 };
+                        sales[item.productId].qty += item.quantity;
+                        sales[item.productId].rev += item.quantity * Number(item.priceAtTime);
+                    });
+                }
+            });
+            const topProducts = Object.values(sales).sort((a,b) => b.qty - a.qty).slice(0, 5);
+
+            return (
+              <>
+                <h2>📊 Bảng điều khiển Thống kê</h2>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '40px', marginTop: '20px' }}>
+                  <div style={{ background: 'linear-gradient(135deg, #3498db, #2980b9)', padding: '20px', borderRadius: '10px', color: '#fff', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+                    <div style={{ fontSize: '0.9rem', opacity: 0.9 }}>Tổng doanh thu (Đơn hàng)</div>
+                    <h3 style={{ margin: '10px 0 0', fontSize: '1.8rem' }}>{totalRev.toLocaleString()} ₫</h3>
+                  </div>
+                  <div style={{ background: 'linear-gradient(135deg, #27ae60, #2ecc71)', padding: '20px', borderRadius: '10px', color: '#fff', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+                    <div style={{ fontSize: '0.9rem', opacity: 0.9 }}>Tổng tiền nạp vào (Ví)</div>
+                    <h3 style={{ margin: '10px 0 0', fontSize: '1.8rem' }}>{totalDeposits.toLocaleString()} ₫</h3>
+                  </div>
+                  <div style={{ background: 'linear-gradient(135deg, #f39c12, #f1c40f)', padding: '20px', borderRadius: '10px', color: '#fff', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+                    <div style={{ fontSize: '0.9rem', opacity: 0.9 }}>Đơn hàng hoàn thành</div>
+                    <h3 style={{ margin: '10px 0 0', fontSize: '1.8rem' }}>{approvedOrders.length} đơn</h3>
+                  </div>
+                  <div style={{ background: 'linear-gradient(135deg, #8e44ad, #9b59b6)', padding: '20px', borderRadius: '10px', color: '#fff', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+                    <div style={{ fontSize: '0.9rem', opacity: 0.9 }}>Tổng khách hàng</div>
+                    <h3 style={{ margin: '10px 0 0', fontSize: '1.8rem' }}>{appUsers.length} người</h3>
+                  </div>
+                </div>
+
+                <h3>🔥 Top 5 Sản phẩm bán chạy nhất</h3>
+                {topProducts.length > 0 ? (
+                  <table className="admin-table" style={{ marginTop: '15px' }}>
+                    <thead>
+                      <tr><th>Tên sản phẩm</th><th>Đã bán (Số lượng)</th><th>Doanh thu mang lại</th></tr>
+                    </thead>
+                    <tbody>
+                      {topProducts.map((p, idx) => (
+                        <tr key={idx}>
+                          <td><b>{p.name}</b></td>
+                          <td style={{ color: '#27ae60', fontWeight: 'bold' }}>{p.qty} cái</td>
+                          <td>{p.rev.toLocaleString()} ₫</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <p style={{ color: 'var(--text-muted)' }}>Chưa có dữ liệu đơn hàng thành công.</p>
+                )}
+              </>
+            );
+          })()}
           
           {tab === 'orders' && (
             <><h2>Đơn hàng</h2><table className="admin-table"><thead><tr><th>Mã</th><th>Người mua</th><th>Tiền</th><th>Tình trạng</th><th>Xử lý</th></tr></thead><tbody>
@@ -291,10 +400,15 @@ const AdminDashboard = () => {
 
           {tab === 'products' && (
             <>
-              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}><h2>📦 Kho Sản phẩm</h2>
-              <button className="btn btn-primary" onClick={()=>{setProdForm({name:'',price:'',stock:10,type:'',style:'',segment:'',categoryId:'',mainImage:''}); setActiveModal('addProd')}}><Plus size={16}/> Thêm</button></div>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
+                <h2>📦 Kho Sản phẩm</h2>
+                <div style={{display:'flex', gap:10}}>
+                  <input className="admin-input" placeholder="Tìm kiếm sản phẩm..." value={searchProd} onChange={e=>setSearchProd(e.target.value)} style={{width:250, padding:'8px 15px'}} />
+                  <button className="btn btn-primary" onClick={()=>{setProdForm({name:'',price:'',stock:10,type:'',style:'',segment:'',categoryId:'',mainImage:''}); setActiveModal('addProd')}}><Plus size={16}/> Thêm</button>
+                </div>
+              </div>
               <table className="admin-table"><thead><tr><th>Sản phẩm</th><th>Phân loại</th><th>Phong cách</th><th>Phân khúc</th><th>Kho</th><th>Xử lý</th></tr></thead><tbody>
-                {products.map(p=>(<tr key={p.id}>
+                {products.filter(p => p.name.toLowerCase().includes(searchProd.toLowerCase())).map(p=>(<tr key={p.id}>
                 <td><div style={{display:'flex', alignItems:'center', gap:10}}><img src={p.mainImage} style={{width:40,height:40,objectFit:'cover',borderRadius:5}} alt="img"/> <b>{p.name}</b></div></td>
                 <td><small>{p.type} <br/><span style={{color:'var(--primary)'}}>{p.room}</span></small></td>
                 <td><small>{p.style}</small></td>
@@ -303,6 +417,37 @@ const AdminDashboard = () => {
                 <td><div style={{display:'flex',gap:10}}><Edit2 size={16} color="#3498db" style={{cursor:'pointer'}} onClick={()=>{setTargetData(p); setProdForm({...p}); setActiveModal('editProd');}}/>
                 <Trash size={16} color="#e74c3c" style={{cursor:'pointer'}} onClick={()=>{setTargetData(p);setActiveModal('confirmDelPrd')}}/></div></td></tr>))}
               </tbody></table>
+            </>
+          )}
+
+          {tab === 'promo' && (
+            <>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
+                <h2>🏷️ Quản lý Khuyến mãi</h2>
+                <input className="admin-input" placeholder="Tìm kiếm sản phẩm..." value={searchProd} onChange={e=>setSearchProd(e.target.value)} style={{width:250, padding:'8px 15px'}} />
+              </div>
+              <table className="admin-table">
+                <thead><tr><th>Sản phẩm</th><th>Giá gốc</th><th>Giá hiện tại</th><th>Khuyến mãi</th><th>Thao tác</th></tr></thead>
+                <tbody>
+                  {products.filter(p => p.name.toLowerCase().includes(searchProd.toLowerCase())).map(p=>(
+                    <tr key={p.id}>
+                      <td><div style={{display:'flex', alignItems:'center', gap:10}}><img src={p.mainImage} style={{width:40,height:40,objectFit:'cover',borderRadius:5}} alt="img"/> <b>{p.name}</b></div></td>
+                      <td>{Number(p.price).toLocaleString()} ₫</td>
+                      <td><b style={{color: p.discountPrice ? '#e74c3c' : 'inherit'}}>{p.discountPrice ? Number(p.discountPrice).toLocaleString() : '-'} ₫</b></td>
+                      <td>
+                        {p.discountPrice ? (
+                          <span className="badge-paid">-{Math.round((1 - p.discountPrice / p.price) * 100)}%</span>
+                        ) : (
+                          <span style={{color: 'var(--text-muted)'}}>Không</span>
+                        )}
+                      </td>
+                      <td>
+                        <button className="btn btn-primary" style={{padding: '5px 10px', fontSize: '0.8rem'}} onClick={()=>{setTargetData(p); setDiscountForm({promoPrice: p.discountPrice || ''}); setActiveModal('applyPromo');}}>{p.discountPrice ? 'Sửa KM' : 'Thêm KM'}</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </>
           )}
 

@@ -21,6 +21,22 @@ const Order = sequelize.define('Order', {
     status: {
         type: DataTypes.ENUM('pending', 'approved', 'cancelled'),
         defaultValue: 'pending'
+    },
+    paymentMethod: {
+        type: DataTypes.ENUM('wallet', 'cod', 'bank_transfer'),
+        defaultValue: 'wallet'
+    },
+    deliveryAddress: {
+        type: DataTypes.TEXT,
+        allowNull: true
+    },
+    voucherCode: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    discountAmount: {
+        type: DataTypes.DECIMAL(15, 2),
+        defaultValue: 0
     }
 }, {
     timestamps: true

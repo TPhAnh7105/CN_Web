@@ -1,15 +1,31 @@
 const Review = require('../models/review.model');
 const User = require('../models/user.model');
 const Product = require('../models/product.model');
+const Order = require('../models/order.model');
+const OrderItem = require('../models/orderItem.model');
 
 exports.addProductReview = async (req, res) => {
     try {
         const { productId, rating, comment } = req.body;
+        const userId = req.user.id;
         
+        // Kiểm tra xem người dùng đã mua sản phẩm này và đơn hàng đã thành công chưa
+        const hasOrdered = await Order.findOne({
+            where: { userId, status: 'approved' },
+            include: [{
+                model: OrderItem,
+                where: { productId }
+            }]
+        });
+
+        if (!hasOrdered) {
+            return res.status(403).json({ message: 'Chỉ khách hàng đã đặt mua thành công (đơn hàng đã duyệt) mới có thể đánh giá.' });
+        }
+
         const review = await Review.create({
             rating,
             comment,
-            userId: req.user.id,
+            userId,
             productId
         });
         

@@ -5,6 +5,9 @@ import Footer from './components/Footer';
 import Home from './pages/Home';
 import Products from './pages/Products';
 import Categories from './pages/Categories';
+import Types from './pages/Types';
+import Styles from './pages/Styles';
+import Segments from './pages/Segments';
 import ProductDetail from './pages/ProductDetail';
 import Cart from './pages/Cart';
 import Search from './pages/Search';
@@ -35,6 +38,9 @@ const App = () => {
                 <Route path="/" element={<Home />} />
                 <Route path="/products" element={<Products />} />
                 <Route path="/categories" element={<Categories />} />
+                <Route path="/types" element={<Types />} />
+                <Route path="/styles" element={<Styles />} />
+                <Route path="/segments" element={<Segments />} />
                 <Route path="/products/:id" element={<ProductDetail />} />
                 <Route path="/cart" element={<Cart />} />
                 <Route path="/search" element={<Search />} />

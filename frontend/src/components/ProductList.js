@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, ArrowRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
 const ProductList = ({ products, loading, title = "Trending Now" }) => {
   return (
@@ -16,19 +16,14 @@ const ProductList = ({ products, loading, title = "Trending Now" }) => {
           {products.map(product => (
             <Link key={product.id} to={`/products/${product.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
               <div className="product-card">
-                <div style={{ position: 'relative', overflow: 'hidden' }}>
-                  <img src={product.image} alt={product.name} className="product-img" />
+                <div style={{ position: 'relative', overflow: 'hidden', height: '220px', backgroundColor: '#f0f2f5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <img src={product.image} alt={product.name} className="product-img" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; e.target.parentNode.style.alignItems = 'center'; e.target.parentNode.innerHTML = '<span style="color:#999;font-size:0.9rem;">Lỗi tải ảnh</span>'; }} />
                   {product.discountPercent && (
                     <div style={{ position: 'absolute', top: '15px', left: '15px', background: '#e74c3c', color: 'white', padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: '700', boxShadow: 'var(--shadow-sm)' }}>
                       -{product.discountPercent}%
                     </div>
                   )}
-                  <button 
-                    style={{ position: 'absolute', top: '15px', right: '15px', background: 'white', border: 'none', borderRadius: '50%', width: '35px', height: '35px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: 'var(--shadow-sm)' }}
-                    onClick={(e) => e.preventDefault()}
-                  >
-                    <Heart size={18} color="var(--text-muted)" />
-                  </button>
+                  )}
                 </div>
                 <div className="product-info">
                   <div className="product-category">{product.category}</div>

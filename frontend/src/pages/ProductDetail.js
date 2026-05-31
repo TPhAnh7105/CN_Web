@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ShoppingCart, ChevronLeft, Package, Layers, Palette, Tag, Box, Star, User } from 'lucide-react';
 import axios from 'axios';
 import { useCart } from '../context/CartContext';
@@ -8,10 +8,12 @@ import { useAuth } from '../context/AuthContext';
 const ProductDetail = () => {
   const { id } = useParams();
   const [product, setProduct] = useState(null);
+  const [relatedProducts, setRelatedProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [addedToCart, setAddedToCart] = useState(false);
   const { addToCart } = useCart();
   const { token, user } = useAuth();
+  const navigate = useNavigate();
 
   const [reviews, setReviews] = useState([]);
   const [rating, setRating] = useState(0);
@@ -20,10 +22,23 @@ const ProductDetail = () => {
   const [reviewMsg, setReviewMsg] = useState('');
 
   useEffect(() => {
+    window.scrollTo(0, 0);
+    
     const fetchProduct = async () => {
       try {
         const response = await axios.get(`http://localhost:5000/api/products/${id}`);
-        setProduct(response.data);
+        const fetchedProduct = response.data;
+        setProduct(fetchedProduct);
+        
+        // Fetch related products (same type or same category)
+        try {
+          const resAll = await axios.get('http://localhost:5000/api/products');
+          const related = resAll.data.filter(p => 
+            (p.categoryId === fetchedProduct.categoryId || p.type === fetchedProduct.type) && String(p.id) !== String(id)
+          ).slice(0, 4); // Get top 4 related
+          setRelatedProducts(related);
+        } catch (e) { console.log(e); }
+
       } catch (error) {
         console.error('Error fetching product:', error.message);
       }
@@ -66,11 +81,15 @@ const ProductDetail = () => {
       setReviews(resReviews.data);
 
     } catch (error) {
-      setReviewMsg('Có lỗi xảy ra');
+      setReviewMsg(error.response?.data?.message || 'Có lỗi xảy ra');
     }
   };
 
   const handleAddToCart = () => {
+    if (!token) {
+      navigate('/login');
+      return;
+    }
     addToCart(product);
     setAddedToCart(true);
     setTimeout(() => setAddedToCart(false), 2000);
@@ -208,7 +227,17 @@ const ProductDetail = () => {
             {/* Review Form */}
             <div style={{ background: 'white', padding: '30px', borderRadius: '15px', boxShadow: 'var(--shadow-sm)', height: 'fit-content' }}>
               <h3 style={{ marginBottom: '20px', color: 'var(--primary)' }}>Viết đánh giá</h3>
-              {reviewMsg && <div style={{ padding: '10px', background: '#e8f6ec', color: '#27ae60', borderRadius: '8px', marginBottom: '15px' }}>{reviewMsg}</div>}
+              {reviewMsg && (
+                <div style={{ 
+                  padding: '10px', 
+                  background: reviewMsg.includes('Cảm ơn') ? '#e8f6ec' : '#fdeded', 
+                  color: reviewMsg.includes('Cảm ơn') ? '#27ae60' : '#e74c3c', 
+                  borderRadius: '8px', 
+                  marginBottom: '15px' 
+                }}>
+                  {reviewMsg}
+                </div>
+              )}
               <form onSubmit={submitReview}>
                 <div style={{ marginBottom: '15px' }}>
                   <label style={{ display: 'block', color: 'var(--text-muted)', marginBottom: '8px' }}>Chất lượng dịch vụ</label>
@@ -270,6 +299,44 @@ const ProductDetail = () => {
             </div>
           </div>
         </div>
+
+        {/* Related Products Section */}
+        {relatedProducts.length > 0 && (
+          <div style={{ marginTop: '80px' }}>
+            <h2 style={{ fontSize: '1.8rem', color: 'var(--primary)', marginBottom: '30px', textAlign: 'center' }}>Sản phẩm liên quan</h2>
+            <div className="products-grid">
+              {relatedProducts.map(p => (
+                <div key={p.id} className="product-card">
+                  {p.discountPrice && (
+                    <div className="product-badge">Giảm {Math.round((1 - p.discountPrice / p.price) * 100)}%</div>
+                  )}
+                  <Link to={`/products/${p.id}`}>
+                    <div style={{ position: 'relative', overflow: 'hidden', borderTopLeftRadius: '15px', borderTopRightRadius: '15px', height: '220px', backgroundColor: '#f0f2f5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <img src={p.mainImage} alt={p.name} className="product-img" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; e.target.parentNode.style.alignItems = 'center'; e.target.parentNode.innerHTML = '<span style="color:#999;font-size:0.9rem;">Lỗi tải ảnh</span>'; }} />
+                    </div>
+                  </Link>
+                  <div className="product-info">
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '5px' }}>{p.type}</div>
+                    <Link to={`/products/${p.id}`} style={{ textDecoration: 'none' }}>
+                      <h3 className="product-name">{p.name}</h3>
+                    </Link>
+                    <div className="product-price">
+                      {p.discountPrice ? (
+                        <>
+                          <span style={{ textDecoration: 'line-through', color: '#999', fontSize: '0.9rem', marginRight: '10px' }}>{Number(p.price).toLocaleString()} ₫</span>
+                          <span style={{ color: '#e74c3c' }}>{Number(p.discountPrice).toLocaleString()} ₫</span>
+                        </>
+                      ) : (
+                        <span>{Number(p.price).toLocaleString()} ₫</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );

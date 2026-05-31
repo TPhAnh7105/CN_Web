@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { Search, RefreshCw } from 'lucide-react';
 import ProductList from '../components/ProductList';
 
 const Products = () => {
@@ -13,6 +14,7 @@ const Products = () => {
   const [selectedType, setSelectedType] = useState('Tất cả');
   const [selectedStyle, setSelectedStyle] = useState('Tất cả');
   const [selectedSegment, setSelectedSegment] = useState('Tất cả');
+  const [searchKeyword, setSearchKeyword] = useState('');
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -85,9 +87,13 @@ const Products = () => {
     if (selectedSegment !== 'Tất cả') {
       result = result.filter(p => p.segment === selectedSegment);
     }
+    if (searchKeyword.trim() !== '') {
+      const keyword = searchKeyword.toLowerCase();
+      result = result.filter(p => p.name.toLowerCase().includes(keyword) || (p.type && p.type.toLowerCase().includes(keyword)));
+    }
 
     setFilteredProducts(result);
-  }, [selectedRoom, selectedType, selectedStyle, selectedSegment, products]);
+  }, [selectedRoom, selectedType, selectedStyle, selectedSegment, searchKeyword, products]);
 
   // Handle URL updates when filters change
   const updateUrl = (key, value) => {
@@ -100,6 +106,15 @@ const Products = () => {
     navigate(`/products?${params.toString()}`, { replace: true });
   };
 
+  const handleReset = () => {
+    setSelectedRoom('Tất cả');
+    setSelectedType('Tất cả');
+    setSelectedStyle('Tất cả');
+    setSelectedSegment('Tất cả');
+    setSearchKeyword('');
+    navigate('/products', { replace: true });
+  };
+
   return (
     <div style={{ paddingTop: '100px', minHeight: '80vh' }}>
       <div className="container" style={{ padding: '40px 20px 0' }}>
@@ -108,61 +123,85 @@ const Products = () => {
         {/* Filter Controls */}
         <div style={{ 
           display: 'flex', 
+          flexDirection: 'column',
           gap: '20px', 
-          justifyContent: 'center', 
-          flexWrap: 'wrap', 
           marginBottom: '40px',
           background: 'var(--white)',
           padding: '20px',
           borderRadius: '16px',
           boxShadow: 'var(--shadow-sm)'
         }}>
-          {/* Segment Filter */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: '600' }}>Phân loại nội thất</label>
-            <select 
-              value={selectedSegment} 
-              onChange={(e) => { setSelectedSegment(e.target.value); updateUrl('segment', e.target.value); }}
-              style={{ padding: '10px 15px', borderRadius: '8px', border: '1px solid #ddd', minWidth: '150px', outline: 'none' }}
-            >
-              {segments.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
+          {/* Top Row: Dropdowns */}
+          <div style={{ display: 'flex', gap: '20px', justifyContent: 'center', flexWrap: 'wrap' }}>
+            {/* Segment Filter */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: '600' }}>Phân loại nội thất</label>
+              <select 
+                value={selectedSegment} 
+                onChange={(e) => { setSelectedSegment(e.target.value); updateUrl('segment', e.target.value); }}
+                style={{ padding: '10px 15px', borderRadius: '8px', border: '1px solid #ddd', minWidth: '150px', outline: 'none' }}
+              >
+                {segments.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+
+            {/* Style Filter */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: '600' }}>Phong cách</label>
+              <select 
+                value={selectedStyle} 
+                onChange={(e) => { setSelectedStyle(e.target.value); updateUrl('style', e.target.value); }}
+                style={{ padding: '10px 15px', borderRadius: '8px', border: '1px solid #ddd', minWidth: '150px', outline: 'none' }}
+              >
+                {styles.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+
+            {/* Room Filter */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: '600' }}>Không gian</label>
+              <select 
+                value={selectedRoom} 
+                onChange={(e) => { setSelectedRoom(e.target.value); updateUrl('category', e.target.value); }}
+                style={{ padding: '10px 15px', borderRadius: '8px', border: '1px solid #ddd', minWidth: '150px', outline: 'none' }}
+              >
+                {rooms.map(r => <option key={r} value={r}>{r}</option>)}
+              </select>
+            </div>
+
+            {/* Type Filter */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: '600' }}>Loại nội thất</label>
+              <select 
+                value={selectedType} 
+                onChange={(e) => { setSelectedType(e.target.value); updateUrl('type', e.target.value); }}
+                style={{ padding: '10px 15px', borderRadius: '8px', border: '1px solid #ddd', minWidth: '150px', outline: 'none' }}
+              >
+                {types.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
           </div>
 
-          {/* Style Filter */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: '600' }}>Phong cách</label>
-            <select 
-              value={selectedStyle} 
-              onChange={(e) => { setSelectedStyle(e.target.value); updateUrl('style', e.target.value); }}
-              style={{ padding: '10px 15px', borderRadius: '8px', border: '1px solid #ddd', minWidth: '150px', outline: 'none' }}
-            >
-              {styles.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </div>
-
-          {/* Room Filter */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: '600' }}>Không gian</label>
-            <select 
-              value={selectedRoom} 
-              onChange={(e) => { setSelectedRoom(e.target.value); updateUrl('category', e.target.value); }}
-              style={{ padding: '10px 15px', borderRadius: '8px', border: '1px solid #ddd', minWidth: '150px', outline: 'none' }}
-            >
-              {rooms.map(r => <option key={r} value={r}>{r}</option>)}
-            </select>
-          </div>
-
-          {/* Type Filter */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: '600' }}>Loại nội thất</label>
-            <select 
-              value={selectedType} 
-              onChange={(e) => { setSelectedType(e.target.value); updateUrl('type', e.target.value); }}
-              style={{ padding: '10px 15px', borderRadius: '8px', border: '1px solid #ddd', minWidth: '150px', outline: 'none' }}
-            >
-              {types.map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
+          {/* Bottom Row: Search & Actions */}
+          <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', alignItems: 'flex-end', flexWrap: 'wrap', marginTop: '10px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: '1', maxWidth: '400px', minWidth: '250px' }}>
+              <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: '600' }}>Tìm kiếm</label>
+              <input 
+                type="text"
+                placeholder="Nhập tên sản phẩm..."
+                value={searchKeyword}
+                onChange={(e) => setSearchKeyword(e.target.value)}
+                style={{ padding: '10px 15px', borderRadius: '8px', border: '1px solid #ddd', width: '100%', outline: 'none' }}
+              />
+            </div>
+            
+            <button className="btn btn-primary" onClick={(e) => e.preventDefault()} style={{ padding: '0 25px', height: '42px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Search size={18} /> Tìm kiếm
+            </button>
+            
+            <button className="btn" onClick={handleReset} style={{ padding: '0 25px', height: '42px', display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#e2e8f0', color: '#475569', border: 'none' }}>
+              <RefreshCw size={18} /> Đặt lại
+            </button>
           </div>
         </div>
 

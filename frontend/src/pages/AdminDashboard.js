@@ -16,6 +16,7 @@ const AdminDashboard = () => {
   const [types, setTypes] = useState([]);
   const [styles, setStyles] = useState([]);
   const [allTx, setAllTx] = useState([]);
+  const [vouchers, setVouchers] = useState([]);
 
   // Real-time Filtered Attribute Sets
   const typeOpts = types;
@@ -32,6 +33,7 @@ const AdminDashboard = () => {
   const [genericAttrForm, setGenericAttrForm] = useState(''); // simplified string name
   const [discountForm, setDiscountForm] = useState({ promoPrice: '' });
   const [searchProd, setSearchProd] = useState('');
+  const [voucherForm, setVoucherForm] = useState({ code: '', discountPercent: '', maxDiscount: '', minOrderValue: '', usageLimit: 100 });
 
   const headers = { Authorization: `Bearer ${token}` };
   const triggerToast = (msg, type='success') => {
@@ -49,7 +51,8 @@ const AdminDashboard = () => {
         axios.get('http://localhost:5000/api/segments'),
         axios.get('http://localhost:5000/api/types'),
         axios.get('http://localhost:5000/api/styles'),
-        axios.get('http://localhost:5000/api/users/all-transactions', { headers })
+        axios.get('http://localhost:5000/api/users/all-transactions', { headers }),
+        axios.get('http://localhost:5000/api/vouchers', { headers })
       ]);
       setOrders(o.data); 
       setProducts(p.data); 
@@ -59,6 +62,7 @@ const AdminDashboard = () => {
       setTypes(t.data);
       setStyles(s.data);
       setAllTx(tx.data);
+      setVouchers(vouchersRes.data);
     } catch (e) {}
   };
 
@@ -124,6 +128,19 @@ const AdminDashboard = () => {
     triggerToast('Đã xóa SP'); setActiveModal(null); fetchData();
   };
 
+  const saveVoucher = async (e) => {
+    e.preventDefault();
+    try {
+      await axios.post('http://localhost:5000/api/vouchers', voucherForm, { headers });
+      triggerToast('Tạo mã giảm giá thành công'); setActiveModal(null); fetchData();
+    } catch(err) { triggerToast(err.response?.data?.message || 'Lỗi', 'error'); }
+  };
+
+  const deleteVoucher = async (id) => {
+    try { await axios.delete(`http://localhost:5000/api/vouchers/${id}`, { headers }); triggerToast('Đã xóa mã'); fetchData(); }
+    catch(err) { triggerToast('Lỗi', 'error'); }
+  };
+
   if (!user || user.role !== 'admin') return <div style={{paddingTop:'150px',textAlign:'center'}}>Từ chối.</div>;
 
   return (
@@ -167,6 +184,21 @@ const AdminDashboard = () => {
               </form>
             )}
 
+            {activeModal === 'addVoucher' && (
+              <form onSubmit={saveVoucher}>
+                <h3>Tạo Mã Giảm Giá</h3>
+                <div style={{display:'grid', gap:'10px', marginTop:'15px'}}>
+                  <div><label>Mã Code (Tùy chọn ghi liền không dấu)</label><input className="admin-input" value={voucherForm.code} required onChange={e=>setVoucherForm({...voucherForm, code:e.target.value.toUpperCase()})}/></div>
+                  <div><label>% Giảm giá (1-100)</label><input className="admin-input" type="number" min="1" max="100" value={voucherForm.discountPercent} required onChange={e=>setVoucherForm({...voucherForm, discountPercent:e.target.value})}/></div>
+                  <div><label>Giảm tối đa (₫)</label><input className="admin-input" type="number" value={voucherForm.maxDiscount} onChange={e=>setVoucherForm({...voucherForm, maxDiscount:e.target.value})}/></div>
+                  <div><label>Đơn tối thiểu (₫)</label><input className="admin-input" type="number" value={voucherForm.minOrderValue} required onChange={e=>setVoucherForm({...voucherForm, minOrderValue:e.target.value})}/></div>
+                  <div><label>Lượt sử dụng tối đa</label><input className="admin-input" type="number" value={voucherForm.usageLimit} required onChange={e=>setVoucherForm({...voucherForm, usageLimit:e.target.value})}/></div>
+                </div>
+                <button type="submit" className="btn btn-primary" style={{width:'100%', marginTop:15}}>Tạo Mã Mới</button>
+                <button type="button" onClick={()=>setActiveModal(null)} style={{width:'100%', background:'none', border:'none', marginTop:5}}>Hủy</button>
+              </form>
+            )}
+
             {activeModal.startsWith('addAttr') && (
               <div>
                 <h3>
@@ -201,6 +233,11 @@ const AdminDashboard = () => {
               <div>
                 <h3>Chi tiết đơn hàng #{targetData.id}</h3>
                 <p>Khách hàng: <b>{targetData.User?.username}</b> ({targetData.User?.email})</p>
+                <p>Thanh toán: <b>{targetData.paymentMethod === 'cod' ? 'Khi nhận hàng (COD)' : targetData.paymentMethod === 'bank_transfer' ? 'Chuyển khoản' : 'Ví online'}</b></p>
+                <p>Địa chỉ giao hàng: <b>{targetData.deliveryAddress || 'Chưa cập nhật'}</b></p>
+                {targetData.voucherCode && (
+                  <p>Mã giảm giá: <b style={{color: '#e74c3c'}}>{targetData.voucherCode}</b> (-{Number(targetData.discountAmount).toLocaleString()} ₫)</p>
+                )}
                 <div style={{maxHeight:'300px', overflowY:'auto', margin:'15px 0'}}>
                   <table className="admin-table" style={{fontSize:'0.9rem'}}>
                     <thead><tr><th>Sản phẩm</th><th>SL</th><th>Giá</th><th>Tổng</th></tr></thead>
@@ -279,7 +316,8 @@ const AdminDashboard = () => {
           <div className={`admin-sidebar-item ${tab === 'orders' ? 'active' : ''}`} onClick={()=>setTab('orders')}><ShoppingBag size={18}/> Đơn hàng</div>
           <div className={`admin-sidebar-item ${tab === 'tx' ? 'active' : ''}`} onClick={()=>setTab('tx')}><Activity size={18}/> Lịch sử giao dịch</div>
           <div className={`admin-sidebar-item ${tab === 'products' ? 'active' : ''}`} onClick={()=>setTab('products')}><Package size={18}/> Sản phẩm</div>
-          <div className={`admin-sidebar-item ${tab === 'promo' ? 'active' : ''}`} onClick={()=>setTab('promo')}><Percent size={18}/> Khuyến mãi</div>
+          <div className={`admin-sidebar-item ${tab === 'promo' ? 'active' : ''}`} onClick={()=>setTab('promo')}><Percent size={18}/> Khuyến mãi SP</div>
+          <div className={`admin-sidebar-item ${tab === 'vouchers' ? 'active' : ''}`} onClick={()=>setTab('vouchers')}><Percent size={18}/> Mã Voucher</div>
           <div className="sidebar-divider" style={{height:'1px', background:'#eee', margin:'10px 25px'}}></div>
           
           <div className={`admin-sidebar-item ${tab === 'cat' ? 'active' : ''}`} onClick={()=>setTab('cat')}><FolderOpen size={18}/> Danh mục</div>
@@ -357,8 +395,8 @@ const AdminDashboard = () => {
           })()}
           
           {tab === 'orders' && (
-            <><h2>Đơn hàng</h2><table className="admin-table"><thead><tr><th>Mã</th><th>Người mua</th><th>Tiền</th><th>Tình trạng</th><th>Xử lý</th></tr></thead><tbody>
-              {orders.map(o=>(<tr key={o.id}><td>#{o.id}</td><td>{o.User?.username}</td><td>{Number(o.totalAmount).toLocaleString()}</td><td><span className={`badge-${o.status}`}>{o.status}</span></td>
+            <><h2>Đơn hàng</h2><table className="admin-table"><thead><tr><th>Mã</th><th>Người mua</th><th>Tiền</th><th>Thanh toán</th><th>Tình trạng</th><th>Xử lý</th></tr></thead><tbody>
+              {orders.map(o=>(<tr key={o.id}><td>#{o.id}</td><td>{o.User?.username}</td><td>{Number(o.totalAmount).toLocaleString()}</td><td>{o.paymentMethod === 'cod' ? 'COD' : o.paymentMethod === 'bank_transfer' ? 'CK Ngân hàng' : 'Ví online'}</td><td><span className={`badge-${o.status}`}>{o.status}</span></td>
               <td><div style={{display:'flex',gap:5}}>
                 <button onClick={()=>{setTargetData(o);setActiveModal('viewOrder')}} className="action-btn" style={{background:'#3498db',color:'#fff'}} title="Chi tiết"><Eye size={12}/></button>
                 {o.status==='pending' && <>
@@ -443,6 +481,39 @@ const AdminDashboard = () => {
                       </td>
                       <td>
                         <button className="btn btn-primary" style={{padding: '5px 10px', fontSize: '0.8rem'}} onClick={()=>{setTargetData(p); setDiscountForm({promoPrice: p.discountPrice || ''}); setActiveModal('applyPromo');}}>{p.discountPrice ? 'Sửa KM' : 'Thêm KM'}</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
+          )}
+
+          {tab === 'vouchers' && (
+            <>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
+                <h2>🎟️ Quản lý Voucher (Mã giảm giá)</h2>
+                <button className="btn btn-primary" onClick={()=>{setVoucherForm({code:'',discountPercent:'',maxDiscount:'',minOrderValue:'',usageLimit:100}); setActiveModal('addVoucher')}}><Plus size={16}/> Thêm mã mới</button>
+              </div>
+              <table className="admin-table">
+                <thead><tr><th>Mã Code</th><th>Giảm %</th><th>Giảm Tối Đa</th><th>Đơn Tối Thiểu</th><th>Đã Dùng / Giới Hạn</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
+                <tbody>
+                  {vouchers.map(v=>(
+                    <tr key={v.id}>
+                      <td><b style={{color: 'var(--primary)', padding: '4px 8px', background: '#eef5ff', borderRadius: '5px'}}>{v.code}</b></td>
+                      <td><b>{v.discountPercent}%</b></td>
+                      <td>{v.maxDiscount ? Number(v.maxDiscount).toLocaleString() + ' ₫' : 'Không giới hạn'}</td>
+                      <td>{Number(v.minOrderValue).toLocaleString()} ₫</td>
+                      <td>{v.usedCount} / {v.usageLimit}</td>
+                      <td>
+                        {v.isActive && v.usedCount < v.usageLimit ? (
+                          <span className="badge-paid">Đang chạy</span>
+                        ) : (
+                          <span className="badge-cancelled">Hết hạn/Hết lượt</span>
+                        )}
+                      </td>
+                      <td>
+                        <Trash size={16} color="#e74c3c" style={{cursor:'pointer'}} onClick={()=>deleteVoucher(v.id)}/>
                       </td>
                     </tr>
                   ))}

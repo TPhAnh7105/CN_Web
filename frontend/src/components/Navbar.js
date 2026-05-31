@@ -20,6 +20,7 @@ const Navbar = () => {
   const { isLoggedIn, logout, user, token } = useAuth();
   const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
   const [showNewOrderNotification, setShowNewOrderNotification] = useState(false);
+  const initialCheckDone = useRef(false);
 
   // Poll for pending orders if admin
   useEffect(() => {
@@ -30,17 +31,27 @@ const Navbar = () => {
           const res = await axios.get('http://localhost:5000/api/orders/pending-count', {
             headers: { Authorization: `Bearer ${token}` }
           });
+          const currentCount = res.data.count;
+          
           setPendingOrdersCount(prev => {
-            if (res.data.count > prev && prev !== 0) {
+            if (!initialCheckDone.current) {
+              if (currentCount > 0) {
+                setShowNewOrderNotification(true);
+                setTimeout(() => setShowNewOrderNotification(false), 10000);
+              }
+              initialCheckDone.current = true;
+            } else if (currentCount > prev && prev !== 0) {
               setShowNewOrderNotification(true);
-              setTimeout(() => setShowNewOrderNotification(false), 5000);
+              setTimeout(() => setShowNewOrderNotification(false), 10000);
             }
-            return res.data.count;
+            return currentCount;
           });
         } catch (error) {}
       };
       checkPending(); // initial fetch
       interval = setInterval(checkPending, 5000); // poll every 5s
+    } else {
+      initialCheckDone.current = false;
     }
     return () => { if (interval) clearInterval(interval); };
   }, [isLoggedIn, user, token]);
@@ -84,9 +95,11 @@ const Navbar = () => {
     e.preventDefault();
     if (searchQuery.trim()) {
       navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-      setSearchQuery('');
-      setShowLiveSearch(false);
+    } else {
+      navigate('/products');
     }
+    setSearchQuery('');
+    setShowLiveSearch(false);
   };
 
   const handleLogout = () => {
@@ -100,6 +113,7 @@ const Navbar = () => {
       label: 'Danh mục',
       key: 'danh-muc',
       items: [
+        { label: 'Tất cả danh mục', url: '/categories' },
         { label: 'Phòng khách', url: '/products?category=Phòng khách' },
         { label: 'Phòng ngủ', url: '/products?category=Phòng ngủ' },
         { label: 'Phòng ăn & Bếp', url: '/products?category=Phòng ăn & Bếp' },
@@ -111,6 +125,7 @@ const Navbar = () => {
       label: 'Phân loại',
       key: 'phan-loai',
       items: [
+        { label: 'Tất cả phân loại', url: '/types' },
         { label: 'Bàn gỗ', url: '/products?type=Bàn gỗ' },
         { label: 'Ghế gỗ', url: '/products?type=Ghế gỗ' },
         { label: 'Tủ', url: '/products?type=Tủ' },
@@ -123,6 +138,7 @@ const Navbar = () => {
       label: 'Phong cách',
       key: 'phong-cach',
       items: [
+        { label: 'Tất cả phong cách', url: '/styles' },
         { label: 'Hiện đại', url: '/products?style=Hiện đại' },
         { label: 'Tối giản', url: '/products?style=Tối giản' },
         { label: 'Bắc Âu', url: '/products?style=Bắc Âu' },
@@ -134,6 +150,7 @@ const Navbar = () => {
       label: 'Phân cấp',
       key: 'phan-cap',
       items: [
+        { label: 'Tất cả phân cấp', url: '/segments' },
         { label: 'Bình dân', url: '/products?segment=Bình dân' },
         { label: 'Trung lưu', url: '/products?segment=Trung lưu' },
         { label: 'Cao cấp', url: '/products?segment=Cao cấp' },
@@ -151,12 +168,26 @@ const Navbar = () => {
         </Link>
 
         {/* Main Dropdowns */}
-        <div className="nav-links" style={{ display: 'flex', gap: '30px', alignItems: 'center' }}>
+        <div className="nav-links" style={{ display: 'flex', gap: '30px', alignItems: 'center', marginLeft: '80px' }}>
+          <Link to="/products" className="nav-dropbtn" style={{ textDecoration: 'none' }} onClick={() => setOpenMenu(null)}>
+            Tất cả sản phẩm
+          </Link>
+          
           {menus.map(menu => (
-            <div key={menu.key} className="nav-dropdown">
+            <div 
+              key={menu.key} 
+              className="nav-dropdown"
+              onMouseEnter={() => setOpenMenu(menu.key)}
+              onMouseLeave={() => setOpenMenu(null)}
+            >
               <span
                 className={`nav-dropbtn${openMenu === menu.key ? ' active' : ''}`}
-                onClick={() => setOpenMenu(prev => (prev === menu.key ? null : menu.key))}
+                onClick={() => {
+                  if (menu.key === 'danh-muc') navigate('/categories');
+                  if (menu.key === 'phan-loai') navigate('/types');
+                  if (menu.key === 'phong-cach') navigate('/styles');
+                  if (menu.key === 'phan-cap') navigate('/segments');
+                }}
               >
                 {menu.label}
                 <ChevronDown size={15} style={{ transition: 'transform 0.3s', transform: openMenu === menu.key ? 'rotate(180deg)' : 'rotate(0deg)' }} />
@@ -204,6 +235,7 @@ const Navbar = () => {
                 onChange={e => setSearchQuery(e.target.value)}
                 placeholder="Tìm sản phẩm..."
                 className="nav-search-input"
+                style={{ minWidth: '280px' }}
               />
               <button type="submit" className="nav-search-btn"><Search size={18} /></button>
             </form>
@@ -241,10 +273,15 @@ const Navbar = () => {
 
           {/* Account / User dropdown */}
           {isLoggedIn ? (
-            <div ref={userDropdownRef} className="user-dropdown">
+            <div 
+              ref={userDropdownRef} 
+              className="user-dropdown"
+              onMouseEnter={() => setShowUserDropdown(true)}
+              onMouseLeave={() => setShowUserDropdown(false)}
+            >
               <div 
                 style={{ cursor: 'pointer', color: 'var(--white)', display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s' }}
-                onClick={() => setShowUserDropdown(!showUserDropdown)}
+                onClick={() => navigate('/profile')}
                 onMouseOver={e => e.currentTarget.style.color = 'var(--secondary)'}
                 onMouseOut={e => e.currentTarget.style.color = 'var(--white)'}
               >
@@ -275,9 +312,6 @@ const Navbar = () => {
                   <Link to="/transactions" className="user-dropdown-item" onClick={() => setShowUserDropdown(false)}>
                     <History size={16} /> Lịch sử giao dịch
                   </Link>
-                  <Link to="/address" className="user-dropdown-item" onClick={() => setShowUserDropdown(false)}>
-                    <MapPin size={16} /> Địa chỉ giao hàng
-                  </Link>
 
                   <div style={{ borderTop: '1px solid #eee', marginTop: '5px' }}>
                     <div className="user-dropdown-item" style={{ color: '#e74c3c' }} onClick={handleLogout}>
@@ -295,7 +329,10 @@ const Navbar = () => {
 
       {/* New Order Notification Toast */}
       {showNewOrderNotification && (
-        <div style={{ position: 'fixed', top: '90px', right: '20px', background: '#fff', borderLeft: '4px solid #f39c12', padding: '15px 20px', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', zIndex: 9999, display: 'flex', alignItems: 'center', gap: '15px', animation: 'slideIn 0.3s ease-out' }}>
+        <div 
+          onClick={() => { setShowNewOrderNotification(false); navigate('/admin'); }}
+          style={{ position: 'fixed', top: '90px', right: '20px', background: '#fff', borderLeft: '4px solid #f39c12', padding: '15px 20px', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', zIndex: 9999, display: 'flex', alignItems: 'center', gap: '15px', animation: 'slideIn 0.3s ease-out', cursor: 'pointer' }}
+        >
           <div style={{ background: '#fef5e7', padding: '10px', borderRadius: '50%' }}>
             <Package color="#f39c12" size={24} />
           </div>
@@ -303,7 +340,7 @@ const Navbar = () => {
             <h4 style={{ margin: 0, color: '#333' }}>Đơn hàng mới!</h4>
             <p style={{ margin: '5px 0 0', fontSize: '0.85rem', color: '#666' }}>Bạn có đơn hàng đang chờ xét duyệt.</p>
           </div>
-          <button onClick={() => setShowNewOrderNotification(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', alignSelf: 'flex-start', color: '#999', fontSize: '1.2rem', padding: 0 }}>×</button>
+          <button onClick={(e) => { e.stopPropagation(); setShowNewOrderNotification(false); }} style={{ background: 'none', border: 'none', cursor: 'pointer', alignSelf: 'flex-start', color: '#999', fontSize: '1.2rem', padding: 0 }}>×</button>
         </div>
       )}
     </nav>

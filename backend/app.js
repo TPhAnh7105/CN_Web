@@ -12,6 +12,7 @@ const typeRoutes = require('./src/routes/type.routes');
 const styleRoutes = require('./src/routes/style.routes');
 const segmentRoutes = require('./src/routes/segment.routes');
 const reviewRoutes = require('./src/routes/review.routes');
+const voucherRoutes = require('./src/routes/voucher.routes');
 
 const app = express();
 
@@ -35,6 +36,7 @@ app.use('/api/types', typeRoutes);
 app.use('/api/styles', styleRoutes);
 app.use('/api/segments', segmentRoutes);
 app.use('/api/reviews', reviewRoutes);
+app.use('/api/vouchers', voucherRoutes);
 
 // Basic route
 app.get('/', (req, res) => {

@@ -130,6 +130,15 @@ body {
   cursor: pointer;
 }
 
+.nav-dropdown::after {
+  content: '';
+  position: absolute;
+  bottom: -25px;
+  left: 0;
+  width: 100%;
+  height: 25px;
+}
+
 .nav-dropdown-content {
   display: block;
   position: absolute;
@@ -895,6 +904,16 @@ footer {
 .user-dropdown {
   position: relative;
 }
+
+.user-dropdown::after {
+  content: '';
+  position: absolute;
+  bottom: -20px;
+  left: 0;
+  width: 100%;
+  height: 20px;
+}
+
 .user-dropdown-content {
   position: absolute;
   top: 100%;

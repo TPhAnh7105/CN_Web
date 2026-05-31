@@ -11,13 +11,38 @@ const Cart = () => {
   const navigate = useNavigate();
   const [checkoutStatus, setCheckoutStatus] = useState(null); // null | 'processing' | 'success' | 'error'
   const [errorMsg, setErrorMsg] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('cod'); // Default payment method
+  const [deliveryAddress, setDeliveryAddress] = useState('');
+  
+  const [voucherCodeInput, setVoucherCodeInput] = useState('');
+  const [appliedVoucher, setAppliedVoucher] = useState(null);
+  const [voucherError, setVoucherError] = useState('');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
 
+  React.useEffect(() => {
+    if (isLoggedIn) {
+      const fetchProfile = async () => {
+        try {
+          const res = await axios.get('http://localhost:5000/api/users/profile', {
+            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+          });
+          if (res.data.address) setDeliveryAddress(res.data.address);
+        } catch (e) {}
+      };
+      fetchProfile();
+    }
+  }, [isLoggedIn]);
+
   const triggerCheckout = () => {
     if (!isLoggedIn) {
       navigate('/login');
+      return;
+    }
+    if (!deliveryAddress || deliveryAddress.trim() === '') {
+      setErrorMsg('Vui lòng nhập địa chỉ giao hàng');
+      setCheckoutStatus('error');
       return;
     }
     setIsModalOpen(true); // Open elegant confirm modal first!
@@ -28,7 +53,10 @@ const Cart = () => {
     setCheckoutStatus('processing');
     try {
       const response = await axios.post('http://localhost:5000/api/orders/checkout', {
-        items: cartItems.map(item => ({ productId: item.id, quantity: item.quantity }))
+        items: cartItems.map(item => ({ productId: item.id, quantity: item.quantity })),
+        paymentMethod: paymentMethod,
+        deliveryAddress: deliveryAddress,
+        voucherCode: appliedVoucher ? appliedVoucher.code : undefined
       }, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
@@ -43,6 +71,27 @@ const Cart = () => {
       setErrorMsg(error.response?.data?.message || 'Đã xảy ra lỗi khi đặt hàng');
     }
   };
+
+  const applyVoucher = async () => {
+    if (!voucherCodeInput.trim()) return;
+    setVoucherError('');
+    try {
+      const res = await axios.post('http://localhost:5000/api/vouchers/apply', { code: voucherCodeInput.trim(), cartTotal }, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      setAppliedVoucher(res.data);
+    } catch (error) {
+      setAppliedVoucher(null);
+      setVoucherError(error.response?.data?.message || 'Mã giảm giá không hợp lệ');
+    }
+  };
+
+  const removeVoucher = () => {
+    setAppliedVoucher(null);
+    setVoucherCodeInput('');
+  };
+
+  const finalTotal = appliedVoucher ? cartTotal - appliedVoucher.discountAmount : cartTotal;
 
   if (cartItems.length === 0 && !isSuccessModalOpen) {
     return (
@@ -123,9 +172,69 @@ const Cart = () => {
               <span>Phí vận chuyển</span>
               <span style={{ color: '#27ae60' }}>Miễn phí</span>
             </div>
+            
+            {/* Vouchers section */}
+            <div style={{ marginTop: '20px', marginBottom: '10px' }}>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <input 
+                  type="text" 
+                  value={voucherCodeInput} 
+                  onChange={e => setVoucherCodeInput(e.target.value)} 
+                  placeholder="Nhập mã giảm giá..." 
+                  style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '0.9rem' }} 
+                  disabled={appliedVoucher !== null}
+                />
+                {!appliedVoucher ? (
+                  <button onClick={applyVoucher} style={{ padding: '8px 15px', background: 'var(--primary)', color: 'white', borderRadius: '8px', border: 'none', cursor: 'pointer' }}>Áp dụng</button>
+                ) : (
+                  <button onClick={removeVoucher} style={{ padding: '8px 15px', background: '#e74c3c', color: 'white', borderRadius: '8px', border: 'none', cursor: 'pointer' }}>Xóa mã</button>
+                )}
+              </div>
+              {voucherError && <p style={{ color: '#e74c3c', fontSize: '0.8rem', marginTop: '5px' }}>{voucherError}</p>}
+              {appliedVoucher && <p style={{ color: '#27ae60', fontSize: '0.85rem', marginTop: '8px', fontWeight: 'bold' }}>✅ Đã áp dụng mã: giảm {Number(appliedVoucher.discountAmount).toLocaleString('vi-VN')} ₫</p>}
+            </div>
+
             <div style={{ borderTop: '2px solid #eee', paddingTop: '15px', marginTop: '15px', display: 'flex', justifyContent: 'space-between' }}>
               <span style={{ fontSize: '1.2rem', fontWeight: '700', color: 'var(--primary)' }}>Tổng cộng</span>
-              <span style={{ fontSize: '1.3rem', fontWeight: '700', color: 'var(--secondary)' }}>{cartTotal.toLocaleString('vi-VN')} ₫</span>
+              <span style={{ fontSize: '1.3rem', fontWeight: '700', color: 'var(--secondary)' }}>{finalTotal.toLocaleString('vi-VN')} ₫</span>
+            </div>
+
+            {/* Address */}
+            <div style={{ marginTop: '20px' }}>
+              <h4 style={{ color: 'var(--primary)', marginBottom: '10px', fontSize: '1rem', display: 'flex', justifyContent: 'space-between' }}>
+                <span>Địa chỉ giao hàng</span>
+                <Link to="/profile" style={{ fontSize: '0.85rem', color: 'var(--secondary)', fontWeight: 'normal' }}>Sửa mặc định</Link>
+              </h4>
+              <textarea 
+                value={deliveryAddress}
+                onChange={(e) => {
+                  setDeliveryAddress(e.target.value);
+                  if (checkoutStatus === 'error' && errorMsg === 'Vui lòng nhập địa chỉ giao hàng') {
+                    setCheckoutStatus(null);
+                    setErrorMsg('');
+                  }
+                }}
+                placeholder="Nhập địa chỉ giao hàng chi tiết..."
+                style={{ width: '100%', minHeight: '80px', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', resize: 'vertical', fontSize: '0.9rem' }}
+              />
+            </div>
+
+            <div style={{ marginTop: '20px' }}>
+              <h4 style={{ color: 'var(--primary)', marginBottom: '10px', fontSize: '1rem' }}>Phương thức thanh toán</h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', color: 'var(--text-muted)' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+                  <input type="radio" name="paymentMethod" value="cod" checked={paymentMethod === 'cod'} onChange={() => setPaymentMethod('cod')} style={{ accentColor: 'var(--secondary)' }} />
+                  <span>Thanh toán khi nhận hàng (COD)</span>
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+                  <input type="radio" name="paymentMethod" value="wallet" checked={paymentMethod === 'wallet'} onChange={() => setPaymentMethod('wallet')} style={{ accentColor: 'var(--secondary)' }} />
+                  <span>Thanh toán bằng ví online</span>
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+                  <input type="radio" name="paymentMethod" value="bank_transfer" checked={paymentMethod === 'bank_transfer'} onChange={() => setPaymentMethod('bank_transfer')} style={{ accentColor: 'var(--secondary)' }} />
+                  <span>Thanh toán qua ngân hàng</span>
+                </label>
+              </div>
             </div>
 
             {checkoutStatus === 'error' && (
@@ -157,7 +266,7 @@ const Cart = () => {
             <ShoppingBag size={60} color="var(--secondary)" style={{ marginBottom: '20px' }} />
             <h2>Xác nhận đặt hàng?</h2>
             <p style={{ color: 'var(--text-muted)', margin: '15px 0 30px' }}>
-              Yêu cầu đặt hàng tổng giá trị <b>{cartTotal.toLocaleString()} ₫</b> của bạn sẽ được gửi tới bộ phận kiểm duyệt.
+              Yêu cầu đặt hàng tổng giá trị <b>{finalTotal.toLocaleString()} ₫</b> của bạn sẽ được gửi tới bộ phận kiểm duyệt.
             </p>
             <div style={{ display: 'flex', gap: '15px' }}>
               <button className="btn btn-primary" style={{ flex: 1 }} onClick={confirmAndPlaceOrder}>Chốt đơn</button>

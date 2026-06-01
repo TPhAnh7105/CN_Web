@@ -4,26 +4,28 @@ import axios from 'axios';
 import { Search, RefreshCw } from 'lucide-react';
 import ProductList from '../components/ProductList';
 
+// Filter options
+const rooms = ['Tất cả', 'Phòng khách', 'Phòng ngủ', 'Phòng ăn & Bếp', 'Phòng làm việc', 'Ngoài trời'];
+const types = ['Tất cả', 'Bàn gỗ', 'Ghế gỗ', 'Tủ', 'Giường', 'Đồ trang trí', 'Sofa'];
+const styles = ['Tất cả', 'Hiện đại', 'Cổ điển', 'Bắc Âu', 'Tối giản', 'Công nghiệp'];
+const segments = ['Tất cả', 'Bình dân', 'Trung lưu', 'Cao cấp'];
+
 const Products = () => {
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Filter states
   const [selectedRoom, setSelectedRoom] = useState('Tất cả');
   const [selectedType, setSelectedType] = useState('Tất cả');
   const [selectedStyle, setSelectedStyle] = useState('Tất cả');
   const [selectedSegment, setSelectedSegment] = useState('Tất cả');
   const [searchKeyword, setSearchKeyword] = useState('');
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
 
   const location = useLocation();
   const navigate = useNavigate();
-
-  // Filter options
-  const rooms = ['Tất cả', 'Phòng khách', 'Phòng ngủ', 'Phòng ăn & Bếp', 'Phòng làm việc', 'Ngoài trời'];
-  const types = ['Tất cả', 'Bàn gỗ', 'Ghế gỗ', 'Tủ', 'Giường', 'Đồ trang trí', 'Sofa'];
-  const styles = ['Tất cả', 'Hiện đại', 'Cổ điển', 'Bắc Âu', 'Tối giản', 'Công nghiệp'];
-  const segments = ['Tất cả', 'Bình dân', 'Trung lưu', 'Cao cấp'];
 
   useEffect(() => {
     // Read parameters from URL query
@@ -32,12 +34,16 @@ const Products = () => {
     const typeParam = params.get('type');
     const styleParam = params.get('style');
     const segmentParam = params.get('segment');
-    
+    const minParam = params.get('minPrice');
+    const maxParam = params.get('maxPrice');
+
     if (catParam && rooms.includes(catParam)) setSelectedRoom(catParam);
     if (typeParam && types.includes(typeParam)) setSelectedType(typeParam);
     if (styleParam && styles.includes(styleParam)) setSelectedStyle(styleParam);
     if (segmentParam && segments.includes(segmentParam)) setSelectedSegment(segmentParam);
-    
+    if (minParam) setMinPrice(minParam);
+    if (maxParam) setMaxPrice(maxParam);
+
   }, [location]);
 
   useEffect(() => {
@@ -48,6 +54,7 @@ const Products = () => {
           const mappedProducts = response.data.map(p => ({
             id: p.id,
             name: p.name,
+            rawPrice: p.discountPrice ? Number(p.discountPrice) : Number(p.price),
             price: p.discountPrice ? Number(p.discountPrice).toLocaleString('vi-VN') : Number(p.price).toLocaleString('vi-VN'),
             originalPrice: p.discountPrice ? Number(p.price).toLocaleString('vi-VN') : null,
             discountPercent: p.discountPrice ? Math.round((1 - p.discountPrice / p.price) * 100) : null,
@@ -91,9 +98,15 @@ const Products = () => {
       const keyword = searchKeyword.toLowerCase();
       result = result.filter(p => p.name.toLowerCase().includes(keyword) || (p.type && p.type.toLowerCase().includes(keyword)));
     }
+    if (minPrice !== '') {
+      result = result.filter(p => p.rawPrice >= Number(minPrice));
+    }
+    if (maxPrice !== '') {
+      result = result.filter(p => p.rawPrice <= Number(maxPrice));
+    }
 
     setFilteredProducts(result);
-  }, [selectedRoom, selectedType, selectedStyle, selectedSegment, searchKeyword, products]);
+  }, [selectedRoom, selectedType, selectedStyle, selectedSegment, searchKeyword, minPrice, maxPrice, products]);
 
   // Handle URL updates when filters change
   const updateUrl = (key, value) => {
@@ -112,6 +125,8 @@ const Products = () => {
     setSelectedStyle('Tất cả');
     setSelectedSegment('Tất cả');
     setSearchKeyword('');
+    setMinPrice('');
+    setMaxPrice('');
     navigate('/products', { replace: true });
   };
 
@@ -119,12 +134,12 @@ const Products = () => {
     <div style={{ paddingTop: '100px', minHeight: '80vh' }}>
       <div className="container" style={{ padding: '40px 20px 0' }}>
         <h1 className="section-title" style={{ marginBottom: '30px' }}>Bộ Sưu Tập Sản Phẩm</h1>
-        
+
         {/* Filter Controls */}
-        <div style={{ 
-          display: 'flex', 
+        <div style={{
+          display: 'flex',
           flexDirection: 'column',
-          gap: '20px', 
+          gap: '20px',
           marginBottom: '40px',
           background: 'var(--white)',
           padding: '20px',
@@ -136,8 +151,8 @@ const Products = () => {
             {/* Segment Filter */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: '600' }}>Phân loại nội thất</label>
-              <select 
-                value={selectedSegment} 
+              <select
+                value={selectedSegment}
                 onChange={(e) => { setSelectedSegment(e.target.value); updateUrl('segment', e.target.value); }}
                 style={{ padding: '10px 15px', borderRadius: '8px', border: '1px solid #ddd', minWidth: '150px', outline: 'none' }}
               >
@@ -148,8 +163,8 @@ const Products = () => {
             {/* Style Filter */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: '600' }}>Phong cách</label>
-              <select 
-                value={selectedStyle} 
+              <select
+                value={selectedStyle}
                 onChange={(e) => { setSelectedStyle(e.target.value); updateUrl('style', e.target.value); }}
                 style={{ padding: '10px 15px', borderRadius: '8px', border: '1px solid #ddd', minWidth: '150px', outline: 'none' }}
               >
@@ -160,8 +175,8 @@ const Products = () => {
             {/* Room Filter */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: '600' }}>Không gian</label>
-              <select 
-                value={selectedRoom} 
+              <select
+                value={selectedRoom}
                 onChange={(e) => { setSelectedRoom(e.target.value); updateUrl('category', e.target.value); }}
                 style={{ padding: '10px 15px', borderRadius: '8px', border: '1px solid #ddd', minWidth: '150px', outline: 'none' }}
               >
@@ -172,8 +187,8 @@ const Products = () => {
             {/* Type Filter */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: '600' }}>Loại nội thất</label>
-              <select 
-                value={selectedType} 
+              <select
+                value={selectedType}
                 onChange={(e) => { setSelectedType(e.target.value); updateUrl('type', e.target.value); }}
                 style={{ padding: '10px 15px', borderRadius: '8px', border: '1px solid #ddd', minWidth: '150px', outline: 'none' }}
               >
@@ -182,11 +197,11 @@ const Products = () => {
             </div>
           </div>
 
-          {/* Bottom Row: Search & Actions */}
+          {/* Bottom Row: Search & Price Inputs */}
           <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', alignItems: 'flex-end', flexWrap: 'wrap', marginTop: '10px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: '1', maxWidth: '400px', minWidth: '250px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: '1', minWidth: '200px' }}>
               <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: '600' }}>Tìm kiếm</label>
-              <input 
+              <input
                 type="text"
                 placeholder="Nhập tên sản phẩm..."
                 value={searchKeyword}
@@ -194,12 +209,37 @@ const Products = () => {
                 style={{ padding: '10px 15px', borderRadius: '8px', border: '1px solid #ddd', width: '100%', outline: 'none' }}
               />
             </div>
-            
-            <button className="btn btn-primary" onClick={(e) => e.preventDefault()} style={{ padding: '0 25px', height: '42px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Search size={18} /> Tìm kiếm
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '150px' }}>
+              <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: '600' }}>Từ giá (₫)</label>
+              <input
+                type="number"
+                placeholder="Nhập giá"
+                value={minPrice}
+                onChange={(e) => setMinPrice(e.target.value)}
+                style={{ padding: '10px 15px', borderRadius: '8px', border: '1px solid #ddd', width: '100%', outline: 'none' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '150px' }}>
+              <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: '600' }}>Đến giá (₫)</label>
+              <input
+                type="number"
+                placeholder="Nhập giá"
+                value={maxPrice}
+                onChange={(e) => setMaxPrice(e.target.value)}
+                style={{ padding: '10px 15px', borderRadius: '8px', border: '1px solid #ddd', width: '100%', outline: 'none' }}
+              />
+            </div>
+          </div>
+
+          {/* Action Buttons Row */}
+          <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', marginTop: '15px' }}>
+            <button className="btn btn-primary" onClick={(e) => e.preventDefault()} style={{ padding: '0 30px', height: '42px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Search size={18} /> Lọc
             </button>
-            
-            <button className="btn" onClick={handleReset} style={{ padding: '0 25px', height: '42px', display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#e2e8f0', color: '#475569', border: 'none' }}>
+
+            <button className="btn" onClick={handleReset} style={{ padding: '0 30px', height: '42px', display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#e2e8f0', color: '#475569', border: 'none' }}>
               <RefreshCw size={18} /> Đặt lại
             </button>
           </div>

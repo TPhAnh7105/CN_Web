@@ -19,9 +19,9 @@ exports.checkout = async (req, res) => {
         let total = 0;
         // Calc total & fetch current prices
         const validItems = [];
-        for(const item of items) {
+        for (const item of items) {
             const p = await Product.findByPk(item.productId);
-            if(!p) throw new Error(`SP ID ${item.productId} ko tồn tại`);
+            if (!p) throw new Error(`SP ID ${item.productId} ko tồn tại`);
             const currentPrice = p.discountPrice ? Number(p.discountPrice) : Number(p.price);
             total += currentPrice * item.quantity;
             validItems.push({ productId: p.id, quantity: item.quantity, price: currentPrice });
@@ -59,7 +59,7 @@ exports.checkout = async (req, res) => {
             if (parseFloat(customer.balance) < total) {
                 throw new Error(`Số dư ví không đủ để thanh toán (${Number(customer.balance).toLocaleString()}đ < ${total.toLocaleString()}đ). Vui lòng nạp thêm.`);
             }
-            
+
             // Deduct balance
             await customer.update({ balance: parseFloat(customer.balance) - total }, { transaction: t });
         }
@@ -87,7 +87,7 @@ exports.checkout = async (req, res) => {
         }
 
         // Insert line items
-        for(const v of validItems) {
+        for (const v of validItems) {
             await OrderItem.create({
                 orderId: order.id,
                 productId: v.productId,
@@ -110,6 +110,20 @@ exports.getAllOrders = async (req, res) => {
         const orders = await Order.findAll({
             include: [
                 { model: User, attributes: ['id', 'username', 'email', 'balance'] },
+                { model: OrderItem, include: [Product] }
+            ],
+            order: [['createdAt', 'DESC']]
+        });
+        res.json(orders);
+    } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
+// USER GET MY ORDERS
+exports.getMyOrders = async (req, res) => {
+    try {
+        const orders = await Order.findAll({
+            where: { userId: req.user.id },
+            include: [
                 { model: OrderItem, include: [Product] }
             ],
             order: [['createdAt', 'DESC']]
@@ -169,15 +183,15 @@ exports.rejectOrder = async (req, res) => {
     const t = await sequelize.transaction();
     try {
         const order = await Order.findByPk(req.params.id, { transaction: t, lock: true });
-        if(!order || order.status !== 'pending') throw new Error('Ko hợp lệ hoặc đã xử lý');
-        
+        if (!order || order.status !== 'pending') throw new Error('Ko hợp lệ hoặc đã xử lý');
+
         if (order.paymentMethod === 'wallet') {
             // Refund balance
             const customer = await User.findByPk(order.userId, { transaction: t, lock: true });
             const totalCost = parseFloat(order.totalAmount);
-            
+
             await customer.update({ balance: parseFloat(customer.balance) + totalCost }, { transaction: t });
-            
+
             // Log Refund Transaction
             await Transaction.create({
                 userId: customer.id,
@@ -189,11 +203,11 @@ exports.rejectOrder = async (req, res) => {
         }
 
         await order.update({ status: 'cancelled' }, { transaction: t });
-        
+
         await t.commit();
         res.json({ success: true, message: 'Đã hủy đơn hàng.' });
-    } catch (err) { 
+    } catch (err) {
         await t.rollback();
-        res.status(500).json({ message: err.message }); 
+        res.status(500).json({ message: err.message });
     }
 };

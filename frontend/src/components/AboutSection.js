@@ -6,7 +6,7 @@ const AboutSection = () => {
       <div className="about-content" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '60px', alignItems: 'center' }}>
         <div className="hero-image" style={{ position: 'relative' }}>
           <img
-            src="https://picsum.photos/seed/furn22/800/600"
+            src="https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80"
             alt="About LuxeFurnish"
             style={{ height: '450px' }} // Limit height to look perfect on about section
           />

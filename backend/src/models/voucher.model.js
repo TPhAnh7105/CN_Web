@@ -43,6 +43,19 @@ const Voucher = sequelize.define('Voucher', {
     isActive: {
         type: DataTypes.BOOLEAN,
         defaultValue: true
+    },
+    oncePerUser: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true,
+        allowNull: false
+    },
+    startDate: {
+        type: DataTypes.DATE,
+        allowNull: true
+    },
+    endDate: {
+        type: DataTypes.DATE,
+        allowNull: true
     }
 }, {
     timestamps: true

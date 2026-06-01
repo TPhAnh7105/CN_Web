@@ -3,7 +3,7 @@ const { Op } = require('sequelize');
 
 exports.createVoucher = async (req, res) => {
     try {
-        const { code, discountPercent, maxDiscount, minOrderValue, usageLimit } = req.body;
+        const { code, discountPercent, maxDiscount, minOrderValue, usageLimit, oncePerUser, startDate, endDate } = req.body;
         
         // check if code exists
         const existing = await Voucher.findOne({ where: { code: code.toUpperCase() } });
@@ -16,7 +16,10 @@ exports.createVoucher = async (req, res) => {
             discountPercent,
             maxDiscount: maxDiscount || null,
             minOrderValue: minOrderValue || 0,
-            usageLimit: usageLimit || 100
+            usageLimit: usageLimit || 100,
+            oncePerUser: oncePerUser !== undefined ? oncePerUser : true,
+            startDate: startDate || null,
+            endDate: endDate || null
         });
 
         res.status(201).json({ success: true, voucher });
@@ -59,6 +62,28 @@ exports.applyVoucher = async (req, res) => {
 
         if (voucher.usedCount >= voucher.usageLimit) {
             return res.status(400).json({ message: 'Mã giảm giá đã hết lượt sử dụng' });
+        }
+
+        if (voucher.oncePerUser) {
+            const Order = require('../models/order.model');
+            const alreadyUsed = await Order.findOne({
+                where: {
+                    userId: req.user.id,
+                    voucherCode: voucher.code,
+                    status: { [Op.ne]: 'cancelled' }
+                }
+            });
+            if (alreadyUsed) {
+                return res.status(400).json({ message: 'Tài khoản của bạn đã sử dụng mã giảm giá này rồi' });
+            }
+        }
+
+        const now = new Date();
+        if (voucher.startDate && now < new Date(voucher.startDate)) {
+            return res.status(400).json({ message: 'Mã giảm giá chưa đến thời gian áp dụng' });
+        }
+        if (voucher.endDate && now > new Date(voucher.endDate)) {
+            return res.status(400).json({ message: 'Mã giảm giá đã hết hạn sử dụng' });
         }
 
         if (Number(cartTotal) < Number(voucher.minOrderValue)) {

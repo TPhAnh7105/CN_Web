@@ -2,6 +2,8 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import ChatWidget from './components/ChatWidget';
+import PageTransition from './components/PageTransition';
 import Home from './pages/Home';
 import Products from './pages/Products';
 import Categories from './pages/Categories';
@@ -34,28 +36,31 @@ const App = () => {
           <div className="app">
             <Navbar />
             <main style={{ flex: 1 }}>
-              <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/products" element={<Products />} />
-                <Route path="/categories" element={<Categories />} />
-                <Route path="/types" element={<Types />} />
-                <Route path="/styles" element={<Styles />} />
-                <Route path="/segments" element={<Segments />} />
-                <Route path="/products/:id" element={<ProductDetail />} />
-                <Route path="/cart" element={<Cart />} />
-                <Route path="/search" element={<Search />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                <Route path="/forgot-password" element={<ForgotPassword />} />
-                <Route path="/reset-password/:token" element={<ResetPassword />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/wallet" element={<Wallet />} />
-                <Route path="/transactions" element={<History />} />
-                <Route path="/address" element={<Address />} />
-                <Route path="/admin" element={<AdminDashboard />} />
-              </Routes>
+              <PageTransition>
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/products" element={<Products />} />
+                  <Route path="/categories" element={<Categories />} />
+                  <Route path="/types" element={<Types />} />
+                  <Route path="/styles" element={<Styles />} />
+                  <Route path="/segments" element={<Segments />} />
+                  <Route path="/products/:id" element={<ProductDetail />} />
+                  <Route path="/cart" element={<Cart />} />
+                  <Route path="/search" element={<Search />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/register" element={<Register />} />
+                  <Route path="/forgot-password" element={<ForgotPassword />} />
+                  <Route path="/reset-password/:token" element={<ResetPassword />} />
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/wallet" element={<Wallet />} />
+                  <Route path="/transactions" element={<History />} />
+                  <Route path="/address" element={<Address />} />
+                  <Route path="/admin" element={<AdminDashboard />} />
+                </Routes>
+              </PageTransition>
             </main>
             <Footer />
+            <ChatWidget />
           </div>
         </Router>
       </CartProvider>

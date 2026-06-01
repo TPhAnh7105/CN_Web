@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ShoppingCart, ChevronLeft, Package, Layers, Palette, Tag, Box, Star, User } from 'lucide-react';
+import { ShoppingCart, ChevronLeft, ChevronDown, ChevronUp, Package, Layers, Palette, Tag, Box, Star, User } from 'lucide-react';
 import axios from 'axios';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -12,7 +12,7 @@ const ProductDetail = () => {
   const [loading, setLoading] = useState(true);
   const [addedToCart, setAddedToCart] = useState(false);
   const { addToCart } = useCart();
-  const { token, user } = useAuth();
+  const { token } = useAuth();
   const navigate = useNavigate();
 
   const [reviews, setReviews] = useState([]);
@@ -20,6 +20,7 @@ const ProductDetail = () => {
   const [hoverRating, setHoverRating] = useState(0);
   const [comment, setComment] = useState('');
   const [reviewMsg, setReviewMsg] = useState('');
+  const [isDescExpanded, setIsDescExpanded] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -218,6 +219,50 @@ const ProductDetail = () => {
             </button>
           </div>
         </div>
+
+        {/* Detailed Description Section */}
+        {product.detailedDescription && (
+          <div style={{ marginTop: '50px', borderTop: '1px solid #eee', paddingTop: '40px' }}>
+            <h2 style={{ fontSize: '1.8rem', color: 'var(--primary)', marginBottom: '20px' }}>Chi tiết sản phẩm</h2>
+            
+            <div style={{ 
+              position: 'relative',
+              overflow: 'hidden', 
+              maxHeight: isDescExpanded ? '5000px' : '250px',
+              transition: 'max-height 0.4s ease-in-out'
+            }}>
+              <div 
+                style={{ lineHeight: '1.8', color: 'var(--text-light)', fontSize: '1.05rem', wordBreak: 'break-word' }}
+                dangerouslySetInnerHTML={{ __html: product.detailedDescription.replace(/\n/g, '<br/>') }}
+              ></div>
+              
+              {!isDescExpanded && (
+                <div style={{
+                  position: 'absolute', bottom: 0, left: 0, width: '100%', height: '120px',
+                  background: 'linear-gradient(transparent, var(--bg-color))',
+                  pointerEvents: 'none'
+                }}></div>
+              )}
+            </div>
+            
+            <div style={{ textAlign: 'center', marginTop: '15px' }}>
+              <button 
+                onClick={() => setIsDescExpanded(!isDescExpanded)}
+                style={{
+                  background: 'transparent', border: '1px solid var(--primary)', color: 'var(--primary)', 
+                  padding: '8px 25px', borderRadius: '25px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '8px',
+                  fontWeight: 600, transition: 'all 0.2s', outline: 'none'
+                }}
+              >
+                {isDescExpanded ? (
+                  <>Thu gọn <ChevronUp size={18}/></>
+                ) : (
+                  <>Xem toàn bộ mô tả chi tiết <ChevronDown size={18}/></>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Reviews Section */}
         <div style={{ marginTop: '60px', borderTop: '1px solid #eee', paddingTop: '40px' }}>

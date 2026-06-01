@@ -13,6 +13,7 @@ const styleRoutes = require('./src/routes/style.routes');
 const segmentRoutes = require('./src/routes/segment.routes');
 const reviewRoutes = require('./src/routes/review.routes');
 const voucherRoutes = require('./src/routes/voucher.routes');
+const chatRoutes = require('./src/routes/chat.routes');
 
 const app = express();
 
@@ -37,6 +38,7 @@ app.use('/api/styles', styleRoutes);
 app.use('/api/segments', segmentRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/vouchers', voucherRoutes);
+app.use('/api/chat', chatRoutes);
 
 // Basic route
 app.get('/', (req, res) => {

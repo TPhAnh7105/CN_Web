@@ -8,31 +8,31 @@ const Styles = () => {
       id: 1,
       name: 'Hiện đại',
       description: 'Phong cách tập trung vào công năng, đường nét dứt khoát và tối giản các chi tiết rườm rà. Thích hợp cho lối sống năng động, tươi mới.',
-      image: 'https://picsum.photos/seed/style1/800/600',
+      image: 'https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?auto=format&fit=crop&w=800&q=80',
     },
     {
       id: 2,
       name: 'Tối giản',
       description: 'Nguyên tắc "Less is More". Tối giản không có nghĩa là trống rỗng, mà là giữ lại những tinh hoa mang lại sự bình yên cho tâm hồn.',
-      image: 'https://picsum.photos/seed/style2/800/600',
+      image: 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=800&q=80',
     },
     {
       id: 3,
       name: 'Bắc Âu',
       description: 'Sự pha trộn tuyệt vời giữa vẻ đẹp, sự đơn giản và chức năng. Sử dụng gỗ sáng màu, ánh sáng tự nhiên và chất liệu thô mộc.',
-      image: 'https://picsum.photos/seed/style3/800/600',
+      image: 'https://images.unsplash.com/photo-1538688525198-9b88f6f53126?auto=format&fit=crop&w=800&q=80',
     },
     {
       id: 4,
       name: 'Cổ điển',
       description: 'Tôn vinh vẻ đẹp vượt thời gian qua những chi tiết chạm khắc tỉ mỉ, đối xứng hoàn hảo và bảng màu trầm ấm sang trọng.',
-      image: 'https://picsum.photos/seed/style4/800/600',
+      image: 'https://images.unsplash.com/photo-1540518614846-7eded433c457?auto=format&fit=crop&w=800&q=80',
     },
     {
       id: 5,
       name: 'Công nghiệp',
       description: 'Lấy cảm hứng từ những nhà máy cũ, mang nét cá tính mạnh mẽ với sự lộ diện của các yếu tố cấu trúc, kim loại thô và gạch trần.',
-      image: 'https://picsum.photos/seed/style5/800/600',
+      image: 'https://images.unsplash.com/photo-1519961655809-34fa156820ff?auto=format&fit=crop&w=800&q=80',
     }
   ];
 

@@ -8,37 +8,37 @@ const Types = () => {
       id: 1,
       name: 'Bàn gỗ',
       description: 'Sự kết hợp hoàn hảo giữa nét đẹp tự nhiên của vân gỗ và thiết kế tinh tế. Phù hợp cho cả không gian ăn uống và làm việc.',
-      image: 'https://picsum.photos/seed/type1/800/600',
+      image: 'https://images.unsplash.com/photo-1577140917170-285929fb55b7?auto=format&fit=crop&w=800&q=80',
     },
     {
       id: 2,
       name: 'Ghế gỗ',
       description: 'Cấu trúc vững chãi, ôm trọn vóc dáng mang lại sự thoải mái tuyệt đối cho những bữa ăn dài hay giờ phút thư giãn.',
-      image: 'https://picsum.photos/seed/type2/800/600',
+      image: 'https://images.unsplash.com/photo-1505843490538-5133c6c7d0e1?auto=format&fit=crop&w=800&q=80',
     },
     {
       id: 3,
       name: 'Tủ',
       description: 'Giải pháp lưu trữ thông minh với thiết kế tối giản, giúp tối ưu hóa không gian sống nhưng vẫn giữ được nét thanh lịch.',
-      image: 'https://picsum.photos/seed/type3/800/600',
+      image: 'https://images.unsplash.com/photo-1595428774223-ef52624120d2?auto=format&fit=crop&w=800&q=80',
     },
     {
       id: 4,
       name: 'Giường',
       description: 'Trung tâm của sự thư giãn với thiết kế êm ái, mang đến cho bạn giấc ngủ trọn vẹn và nạp đầy năng lượng mỗi ngày.',
-      image: 'https://picsum.photos/seed/type4/800/600',
+      image: 'https://images.unsplash.com/photo-1505693314120-0d443867891c?auto=format&fit=crop&w=800&q=80',
     },
     {
       id: 5,
       name: 'Sofa',
       description: 'Điểm nhấn sang trọng của phòng khách. Chất liệu cao cấp và đệm bọc êm ái cho những khoảnh khắc quây quần.',
-      image: 'https://picsum.photos/seed/type5/800/600',
+      image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80',
     },
     {
       id: 6,
       name: 'Đồ trang trí',
       description: 'Những điểm xuyết nhỏ nhưng tinh tế, góp phần thể hiện cá tính riêng và làm cho không gian của bạn thêm phần nghệ thuật.',
-      image: 'https://picsum.photos/seed/type6/800/600',
+      image: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=800&q=80',
     }
   ];
 

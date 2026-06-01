@@ -8,19 +8,19 @@ const Segments = () => {
       id: 1,
       name: 'Bình dân',
       description: 'Những sản phẩm đề cao tính thực dụng, dễ dàng ứng dụng vào mọi không gian với mức chi phí vô cùng hợp lý cho mọi gia đình.',
-      image: 'https://picsum.photos/seed/seg1/800/600',
+      image: 'https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=800&q=80',
     },
     {
       id: 2,
       name: 'Trung lưu',
       description: 'Sự cân bằng tuyệt vời giữa chất lượng vật liệu tốt, độ bền cao và thiết kế có gu, mang lại giá trị xứng đáng cho sự đầu tư của bạn.',
-      image: 'https://picsum.photos/seed/seg2/800/600',
+      image: 'https://images.unsplash.com/photo-1505843490538-5133c6c7d0e1?auto=format&fit=crop&w=800&q=80',
     },
     {
       id: 3,
       name: 'Cao cấp',
       description: 'Tác phẩm nghệ thuật đỉnh cao, sử dụng vật liệu thượng hạng nhất, chi tiết thủ công tinh xảo, khẳng định đẳng cấp và vị thế của gia chủ.',
-      image: 'https://picsum.photos/seed/seg3/800/600',
+      image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=800&q=80',
     }
   ];
 

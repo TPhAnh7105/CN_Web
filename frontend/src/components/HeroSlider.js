@@ -4,19 +4,19 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 const slides = [
   {
     id: 1,
-    image: 'https://picsum.photos/seed/furn14/800/600',
+    image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=800&q=80',
     title: 'Thiết kế nội thất vượt thời gian',
     subtitle: 'Nâng tầm không gian sống của bạn với các bộ sưu tập cao cấp'
   },
   {
     id: 2,
-    image: 'https://picsum.photos/seed/furn15/800/600',
+    image: 'https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?auto=format&fit=crop&w=800&q=80',
     title: 'Không gian phòng khách tinh tế',
     subtitle: 'Sự kết hợp hoàn hảo giữa thẩm mỹ và công năng'
   },
   {
     id: 3,
-    image: 'https://picsum.photos/seed/furn16/800/600',
+    image: 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=800&q=80',
     title: 'Nghệ thuật sắp đặt đương đại',
     subtitle: 'Khám phá bộ sưu tập phong cách tối giản sang trọng'
   }

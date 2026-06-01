@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { Wallet as WalletIcon, PlusCircle } from 'lucide-react';
+import { PlusCircle } from 'lucide-react';
 
 const WalletPage = () => {
   const { token } = useAuth();
@@ -20,6 +20,7 @@ const WalletPage = () => {
     }
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if(token) fetch(); }, [token]);
 
   const handleDeposit = async () => {

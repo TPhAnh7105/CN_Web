@@ -6,6 +6,7 @@ const admin = require('../middleware/admin.middleware');
 
 // User endpoints
 router.post('/checkout', auth, orderController.checkout);
+router.get('/myorders', auth, orderController.getMyOrders);
 
 // Admin endpoints
 router.get('/pending-count', auth, admin, orderController.getPendingOrdersCount);

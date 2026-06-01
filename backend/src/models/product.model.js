@@ -35,6 +35,10 @@ const Product = sequelize.define('Product', {
         type: DataTypes.TEXT,
         allowNull: true
     },
+    detailedDescription: {
+        type: DataTypes.TEXT,
+        allowNull: true
+    },
     mainImage: {
         type: DataTypes.STRING,
         allowNull: true

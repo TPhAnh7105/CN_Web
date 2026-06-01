@@ -8,35 +8,35 @@ const Categories = () => {
       id: 1,
       name: 'Phòng khách',
       description: 'Trung tâm của ngôi nhà, nơi thể hiện trọn vẹn gu thẩm mỹ và phong cách sống của bạn. Khám phá các bộ sưu tập sofa da cao cấp, bàn trà tinh tế và kệ tivi nguyên khối mang lại không gian sang trọng.',
-      image: 'https://picsum.photos/seed/furn9/800/600',
+      image: 'https://images.unsplash.com/photo-1538688525198-9b88f6f53126?auto=format&fit=crop&w=800&q=80',
       count: '8 Sản phẩm'
     },
     {
       id: 2,
       name: 'Phòng ngủ',
       description: 'Không gian riêng tư tuyệt đối giúp bạn nạp lại năng lượng sau một ngày dài. Tuyển tập các mẫu giường ngủ êm ái, tủ quần áo thông minh và bàn trang điểm thanh lịch thiết kế chuẩn Bắc Âu.',
-      image: 'https://picsum.photos/seed/furn10/800/600',
+      image: 'https://images.unsplash.com/photo-1540518614846-7eded433c457?auto=format&fit=crop&w=800&q=80',
       count: '8 Sản phẩm'
     },
     {
       id: 3,
       name: 'Phòng ăn & Bếp',
       description: 'Nơi giữ lửa hạnh phúc gia đình qua từng bữa ăn ấm cúng. Trải nghiệm những bộ bàn ăn gỗ sồi tự nhiên, ghế bar sang trọng và đảo bếp đa năng hiện đại nhất.',
-      image: 'https://picsum.photos/seed/furn11/800/600',
+      image: 'https://images.unsplash.com/photo-1519961655809-34fa156820ff?auto=format&fit=crop&w=800&q=80',
       count: '7 Sản phẩm'
     },
     {
       id: 4,
       name: 'Phòng làm việc',
       description: 'Khơi nguồn cảm hứng sáng tạo và tối ưu hóa hiệu suất với các mẫu bàn ghế công thái học, kệ sách thông minh thiết kế riêng cho không gian làm việc tại nhà.',
-      image: 'https://picsum.photos/seed/furn12/800/600',
+      image: 'https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?auto=format&fit=crop&w=800&q=80',
       count: '8 Sản phẩm'
     },
     {
       id: 5,
       name: 'Ngoài trời',
       description: 'Hòa mình vào thiên nhiên và tận hưởng bầu không khí trong lành cùng bộ sưu tập nội thất ban công, sân vườn với chất liệu mây nhựa siêu bền chịu mọi thời tiết.',
-      image: 'https://picsum.photos/seed/furn13/800/600',
+      image: 'https://images.unsplash.com/photo-1503602642458-232111445657?auto=format&fit=crop&w=800&q=80',
       count: '7 Sản phẩm'
     }
   ];

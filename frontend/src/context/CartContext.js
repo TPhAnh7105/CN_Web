@@ -34,10 +34,14 @@ export const CartProvider = ({ children }) => {
     // Guard against adding items when not logged in if interface permits it
     if (!isLoggedIn) return;
     setCartItems(prev => {
-      const existing = prev.find(item => item.id === product.id);
+      const existing = prev.find(item => 
+        item.id === product.id && 
+        item.selectedColor === product.selectedColor && 
+        item.selectedSize === product.selectedSize
+      );
       if (existing) {
         return prev.map(item =>
-          item.id === product.id
+          (item.id === product.id && item.selectedColor === product.selectedColor && item.selectedSize === product.selectedSize)
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
@@ -46,18 +50,18 @@ export const CartProvider = ({ children }) => {
     });
   };
 
-  const removeFromCart = (productId) => {
-    setCartItems(prev => prev.filter(item => item.id !== productId));
+  const removeFromCart = (productId, color, size) => {
+    setCartItems(prev => prev.filter(item => !(item.id === productId && item.selectedColor === color && item.selectedSize === size)));
   };
 
-  const updateQuantity = (productId, quantity) => {
+  const updateQuantity = (productId, color, size, quantity) => {
     if (quantity <= 0) {
-      removeFromCart(productId);
+      removeFromCart(productId, color, size);
       return;
     }
     setCartItems(prev =>
       prev.map(item =>
-        item.id === productId ? { ...item, quantity } : item
+        (item.id === productId && item.selectedColor === color && item.selectedSize === size) ? { ...item, quantity } : item
       )
     );
   };

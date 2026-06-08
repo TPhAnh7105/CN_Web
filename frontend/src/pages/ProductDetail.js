@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ShoppingCart, ChevronLeft, ChevronDown, ChevronUp, Package, Layers, Palette, Tag, Box, Star, User } from 'lucide-react';
+import { ShoppingCart, ChevronLeft, ChevronDown, ChevronUp, Package, Layers, Palette, Tag, Box, Star, User, Image, Edit, FileText } from 'lucide-react';
 import axios from 'axios';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -12,8 +12,10 @@ const ProductDetail = () => {
   const [loading, setLoading] = useState(true);
   const [addedToCart, setAddedToCart] = useState(false);
   const { addToCart } = useCart();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const navigate = useNavigate();
+  const [selectedColor, setSelectedColor] = useState('');
+  const [selectedSize, setSelectedSize] = useState('');
 
   const [reviews, setReviews] = useState([]);
   const [rating, setRating] = useState(0);
@@ -21,6 +23,92 @@ const ProductDetail = () => {
   const [comment, setComment] = useState('');
   const [reviewMsg, setReviewMsg] = useState('');
   const [isDescExpanded, setIsDescExpanded] = useState(false);
+
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [modalType, setModalType] = useState(''); // 'desc' | 'image' | 'pdf'
+  const [modalData, setModalData] = useState({ desc: '', imageUrl: '', imgAlt: '', pdfUrl: '', pdfTitle: '' });
+  const [uploading, setUploading] = useState(false);
+
+  const handlePdfFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    if (file.type !== 'application/pdf' && !file.name.endsWith('.pdf')) {
+      alert('Vui lòng chọn file định dạng PDF!');
+      return;
+    }
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    setUploading(true);
+    try {
+      const res = await axios.post('http://localhost:5000/api/upload/file', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (res.data.success) {
+        setModalData(prev => ({
+          ...prev,
+          pdfUrl: res.data.url,
+          pdfTitle: prev.pdfTitle === 'Tài liệu đính kèm (PDF)' ? res.data.filename : prev.pdfTitle
+        }));
+        alert('Tải file PDF lên máy chủ thành công!');
+      }
+    } catch (err) {
+      alert('Lỗi tải file lên: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleModalSubmit = async () => {
+    let updatedDesc = product.detailedDescription || '';
+    
+    if (modalType === 'desc') {
+      updatedDesc = modalData.desc;
+    } else if (modalType === 'image') {
+      if (!modalData.imageUrl.trim()) {
+        alert('Vui lòng nhập URL hình ảnh');
+        return;
+      }
+      const imgHtml = `<img src="${modalData.imageUrl.trim()}" style="max-width:100%; display:block; margin: 15px auto; border-radius: 8px;" alt="${modalData.imgAlt.trim() || 'Hình ảnh mô tả'}" />`;
+      updatedDesc = updatedDesc + '\n' + imgHtml;
+    } else if (modalType === 'pdf') {
+      if (!modalData.pdfUrl.trim()) {
+        alert('Vui lòng nhập URL tài liệu PDF');
+        return;
+      }
+      const pdfUrl = modalData.pdfUrl.trim();
+      const pdfTitle = modalData.pdfTitle.trim() || 'Tài liệu PDF đính kèm';
+      const pdfHtml = `<div style="margin: 25px 0; padding: 15px; border: 1px solid #e2e8f0; border-radius: 12px; background: #f8fafc;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+    <h4 style="margin: 0; color: #0f172a; display: flex; align-items: center; gap: 8px; font-size: 1.05rem;">
+      <span style="color: #e11d48; font-size: 1.2rem;">📄</span> ${pdfTitle}
+    </h4>
+    <a href="${pdfUrl}" target="_blank" rel="noopener noreferrer" style="padding: 6px 12px; background: var(--primary); color: white; text-decoration: none; border-radius: 6px; font-size: 0.85rem; font-weight: 600;">Mở tab mới</a>
+  </div>
+  <iframe src="${pdfUrl}#toolbar=0&navpanes=0" width="100%" height="600px" style="border: 1px solid #cbd5e1; border-radius: 8px;" title="${pdfTitle}">
+    Trình duyệt của bạn không hỗ trợ xem PDF trực tiếp. <a href="${pdfUrl}" target="_blank">Nhấn vào đây để tải về</a>.
+  </iframe>
+</div>`;
+      updatedDesc = updatedDesc + '\n' + pdfHtml;
+    }
+    
+    try {
+      const res = await axios.put(`http://localhost:5000/api/products/${product.id}`, 
+        { ...product, detailedDescription: updatedDesc }, 
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setProduct(res.data);
+      setEditModalOpen(false);
+      alert('Đã cập nhật mô tả chi tiết sản phẩm thành công!');
+    } catch (err) {
+      alert('Lỗi: ' + (err.response?.data?.message || err.message));
+    }
+  };
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -30,13 +118,17 @@ const ProductDetail = () => {
         const response = await axios.get(`http://localhost:5000/api/products/${id}`);
         const fetchedProduct = response.data;
         setProduct(fetchedProduct);
+        if (fetchedProduct.colors) setSelectedColor(fetchedProduct.colors.split(',')[0].trim());
+        if (fetchedProduct.sizes) setSelectedSize(fetchedProduct.sizes.split(',')[0].trim());
         
         // Fetch related products (same type or same category)
         try {
           const resAll = await axios.get('http://localhost:5000/api/products');
-          const related = resAll.data.filter(p => 
+          const filtered = resAll.data.filter(p => 
             (p.categoryId === fetchedProduct.categoryId || p.type === fetchedProduct.type) && String(p.id) !== String(id)
-          ).slice(0, 4); // Get top 4 related
+          );
+          // Shuffle array randomly and take 4
+          const related = filtered.sort(() => 0.5 - Math.random()).slice(0, 4);
           setRelatedProducts(related);
         } catch (e) { console.log(e); }
 
@@ -91,7 +183,7 @@ const ProductDetail = () => {
       navigate('/login');
       return;
     }
-    addToCart(product);
+    addToCart({ ...product, selectedColor, selectedSize });
     setAddedToCart(true);
     setTimeout(() => setAddedToCart(false), 2000);
   };
@@ -207,6 +299,44 @@ const ProductDetail = () => {
               </p>
             </div>
 
+            {/* Options */}
+            {(product.sizes || product.colors) && (
+              <div style={{ marginBottom: '25px', display: 'flex', gap: '30px' }}>
+                {product.sizes && (
+                  <div>
+                    <h4 style={{ marginBottom: '10px', fontSize: '0.9rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Kích cỡ</h4>
+                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                      {product.sizes.split(',').map(s => s.trim()).filter(Boolean).map(size => (
+                        <button 
+                          key={size}
+                          onClick={() => setSelectedSize(size)}
+                          style={{ padding: '8px 15px', border: selectedSize === size ? '2px solid var(--secondary)' : '1px solid #ddd', background: selectedSize === size ? 'var(--secondary)' : '#fff', color: selectedSize === size ? '#fff' : '#333', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, transition: '0.2s' }}
+                        >
+                          {size}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {product.colors && (
+                  <div>
+                    <h4 style={{ marginBottom: '10px', fontSize: '0.9rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Màu sắc</h4>
+                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                      {product.colors.split(',').map(c => c.trim()).filter(Boolean).map(color => (
+                        <button 
+                          key={color}
+                          onClick={() => setSelectedColor(color)}
+                          style={{ padding: '8px 15px', border: selectedColor === color ? '2px solid var(--secondary)' : '1px solid #ddd', background: selectedColor === color ? 'var(--secondary)' : '#fff', color: selectedColor === color ? '#fff' : '#333', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, transition: '0.2s' }}
+                        >
+                          {color}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Add to cart */}
             <button
               className={`btn-add-to-cart ${addedToCart ? 'added' : ''}`}
@@ -221,10 +351,64 @@ const ProductDetail = () => {
         </div>
 
         {/* Detailed Description Section */}
-        {product.detailedDescription && (
-          <div style={{ marginTop: '50px', borderTop: '1px solid #eee', paddingTop: '40px' }}>
-            <h2 style={{ fontSize: '1.8rem', color: 'var(--primary)', marginBottom: '20px' }}>Chi tiết sản phẩm</h2>
-            
+        <div style={{ marginTop: '50px', borderTop: '1px solid #eee', paddingTop: '40px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <h2 style={{ fontSize: '1.8rem', color: 'var(--primary)', margin: 0 }}>Chi tiết sản phẩm</h2>
+            {user?.role === 'admin' && (
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button 
+                  onClick={() => {
+                    setModalType('desc');
+                    setModalData({
+                      desc: product.detailedDescription || '',
+                      imageUrl: '',
+                      imgAlt: '',
+                      pdfUrl: '',
+                      pdfTitle: 'Tài liệu đính kèm (PDF)'
+                    });
+                    setEditModalOpen(true);
+                  }}
+                  style={{ padding: '8px 15px', background: '#3498db', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px' }}
+                >
+                  <Edit size={16} /> Viết / Sửa mô tả
+                </button>
+                <button 
+                  onClick={() => {
+                    setModalType('image');
+                    setModalData({
+                      desc: '',
+                      imageUrl: '',
+                      imgAlt: '',
+                      pdfUrl: '',
+                      pdfTitle: 'Tài liệu đính kèm (PDF)'
+                    });
+                    setEditModalOpen(true);
+                  }}
+                  style={{ padding: '8px 15px', background: '#27ae60', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px' }}
+                >
+                  <Image size={16} /> Chèn hình ảnh
+                </button>
+                <button 
+                  onClick={() => {
+                    setModalType('pdf');
+                    setModalData({
+                      desc: '',
+                      imageUrl: '',
+                      imgAlt: '',
+                      pdfUrl: '',
+                      pdfTitle: 'Tài liệu đính kèm (PDF)'
+                    });
+                    setEditModalOpen(true);
+                  }}
+                  style={{ padding: '8px 15px', background: '#e74c3c', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px' }}
+                >
+                  <FileText size={16} /> Chèn PDF
+                </button>
+              </div>
+            )}
+          </div>
+          
+          {product.detailedDescription ? (
             <div style={{ 
               position: 'relative',
               overflow: 'hidden', 
@@ -233,7 +417,7 @@ const ProductDetail = () => {
             }}>
               <div 
                 style={{ lineHeight: '1.8', color: 'var(--text-light)', fontSize: '1.05rem', wordBreak: 'break-word' }}
-                dangerouslySetInnerHTML={{ __html: product.detailedDescription.replace(/\n/g, '<br/>') }}
+                dangerouslySetInnerHTML={{ __html: product.detailedDescription.replace(/\n/g, '<br/>').replace(/<iframe\s+src="([^"]+?\.pdf)"/ig, '<iframe src="$1#toolbar=0&navpanes=0"') }}
               ></div>
               
               {!isDescExpanded && (
@@ -244,7 +428,11 @@ const ProductDetail = () => {
                 }}></div>
               )}
             </div>
-            
+          ) : (
+            <p style={{color: 'var(--text-muted)'}}>Sản phẩm này chưa có mô tả chi tiết.</p>
+          )}
+          
+          {product.detailedDescription && (
             <div style={{ textAlign: 'center', marginTop: '15px' }}>
               <button 
                 onClick={() => setIsDescExpanded(!isDescExpanded)}
@@ -261,8 +449,8 @@ const ProductDetail = () => {
                 )}
               </button>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Reviews Section */}
         <div style={{ marginTop: '60px', borderTop: '1px solid #eee', paddingTop: '40px' }}>
@@ -378,6 +566,137 @@ const ProductDetail = () => {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Custom Edit Modal */}
+        {editModalOpen && (
+          <div style={{
+            position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+            background: 'rgba(0, 0, 0, 0.5)', backdropFilter: 'blur(5px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 1100
+          }}>
+            <div style={{
+              background: 'white', padding: '30px', borderRadius: '15px',
+              width: '100%', maxWidth: '600px', boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
+              position: 'relative'
+            }}>
+              <h3 style={{ marginBottom: '20px', color: 'var(--primary)', borderBottom: '1px solid #eee', paddingBottom: '10px', fontSize: '1.25rem', fontWeight: 'bold' }}>
+                {modalType === 'desc' ? 'Chỉnh sửa mô tả chi tiết' : 
+                 modalType === 'image' ? 'Chèn hình ảnh vào mô tả' : 'Chèn tài liệu PDF đính kèm'}
+              </h3>
+              
+              {modalType === 'desc' && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '8px' }}>Nội dung mô tả (Hỗ trợ định dạng HTML)</label>
+                  <textarea 
+                    value={modalData.desc}
+                    onChange={(e) => setModalData({ ...modalData, desc: e.target.value })}
+                    style={{ width: '100%', height: '250px', padding: '15px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '0.95rem', fontFamily: 'inherit', resize: 'vertical', outline: 'none' }}
+                    placeholder="Nhập mô tả sản phẩm ở đây..."
+                  />
+                </div>
+              )}
+
+              {modalType === 'image' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '6px' }}>Đường dẫn hình ảnh (URL)</label>
+                    <input 
+                      type="text"
+                      value={modalData.imageUrl}
+                      onChange={(e) => setModalData({ ...modalData, imageUrl: e.target.value })}
+                      style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '0.95rem', outline: 'none' }}
+                      placeholder="https://example.com/image.jpg"
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '6px' }}>Tên mô tả hình ảnh (Alt text)</label>
+                    <input 
+                      type="text"
+                      value={modalData.imgAlt}
+                      onChange={(e) => setModalData({ ...modalData, imgAlt: e.target.value })}
+                      style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '0.95rem', outline: 'none' }}
+                      placeholder="Hình ảnh Sofa"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {modalType === 'pdf' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '6px' }}>Tải file PDF từ máy tính</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <input 
+                        type="file"
+                        accept=".pdf"
+                        onChange={handlePdfFileChange}
+                        style={{ display: 'none' }}
+                        id="pdf-upload-input"
+                      />
+                      <label 
+                        htmlFor="pdf-upload-input"
+                        style={{
+                          background: 'var(--primary)', color: 'white', padding: '10px 15px', borderRadius: '8px', 
+                          cursor: 'pointer', fontSize: '0.9rem', fontWeight: 600, display: 'inline-block'
+                        }}
+                      >
+                        {uploading ? 'Đang tải lên...' : 'Chọn file từ máy'}
+                      </label>
+                      {modalData.pdfUrl && (
+                        <span style={{ fontSize: '0.85rem', color: '#27ae60', fontWeight: 'bold' }}>
+                          ✓ {modalData.pdfTitle !== 'Tài liệu đính kèm (PDF)' ? modalData.pdfTitle : 'Đã tải file lên'}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ flex: 1, height: '1px', background: '#eee' }}></div>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>HOẶC</span>
+                    <div style={{ flex: 1, height: '1px', background: '#eee' }}></div>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '6px' }}>Đường dẫn file PDF (URL)</label>
+                    <input 
+                      type="text"
+                      value={modalData.pdfUrl}
+                      onChange={(e) => setModalData({ ...modalData, pdfUrl: e.target.value })}
+                      style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '0.95rem', outline: 'none' }}
+                      placeholder="https://example.com/document.pdf"
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '6px' }}>Tên hiển thị tài liệu</label>
+                    <input 
+                      type="text"
+                      value={modalData.pdfTitle}
+                      onChange={(e) => setModalData({ ...modalData, pdfTitle: e.target.value })}
+                      style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '0.95rem', outline: 'none' }}
+                      placeholder="Tài liệu đính kèm (PDF)"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '25px', borderTop: '1px solid #eee', paddingTop: '15px' }}>
+                <button 
+                  onClick={() => setEditModalOpen(false)}
+                  style={{ background: '#eee', color: '#333', padding: '10px 20px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 600 }}
+                >
+                  Hủy bỏ
+                </button>
+                <button 
+                  onClick={handleModalSubmit}
+                  style={{ background: 'var(--secondary)', color: 'white', padding: '10px 20px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 600 }}
+                >
+                  {modalType === 'desc' ? 'Lưu thay đổi' : 'Chèn nội dung'}
+                </button>
+              </div>
             </div>
           </div>
         )}

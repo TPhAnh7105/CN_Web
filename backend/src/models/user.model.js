@@ -47,6 +47,18 @@ const User = sequelize.define('User', {
     resetPasswordExpire: {
         type: DataTypes.DATE,
         allowNull: true
+    },
+    isBlocked: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
+    },
+    blockReason: {
+        type: DataTypes.TEXT,
+        allowNull: true
+    },
+    blockExpiresAt: {
+        type: DataTypes.DATE,
+        allowNull: true
     }
 }, {
     timestamps: true

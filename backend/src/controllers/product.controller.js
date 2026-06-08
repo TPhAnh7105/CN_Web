@@ -56,7 +56,7 @@ exports.getProductById = async (req, res) => {
 // Create product
 exports.createProduct = async (req, res) => {
     try {
-        const { name, price, stock, description, detailedDescription, mainImage, categoryId, segment, type, style } = req.body;
+        const { name, price, stock, description, detailedDescription, mainImage, categoryId, segment, type, style, colors, sizes } = req.body;
         
         // Resolve type text to typeId
         let typeId = null;
@@ -79,7 +79,7 @@ exports.createProduct = async (req, res) => {
         }
         
         const product = await Product.create({
-            name, price, stock, description, detailedDescription, mainImage, categoryId, typeId, styleId, segmentId
+            name, price, stock, description, detailedDescription, mainImage, categoryId, typeId, styleId, segmentId, colors, sizes
         });
         res.status(201).json(product);
     } catch (error) {
@@ -95,8 +95,8 @@ exports.updateProduct = async (req, res) => {
             return res.status(404).json({ message: 'Product not found' });
         }
         
-        const { name, price, discountPrice, stock, description, detailedDescription, mainImage, categoryId, segment, type, style } = req.body;
-        const updateData = { name, price, stock, description, detailedDescription, mainImage, categoryId };
+        const { name, price, discountPrice, stock, description, detailedDescription, mainImage, categoryId, segment, type, style, colors, sizes } = req.body;
+        const updateData = { name, price, stock, description, detailedDescription, mainImage, categoryId, colors, sizes };
         
         if (discountPrice !== undefined) {
             updateData.discountPrice = discountPrice;

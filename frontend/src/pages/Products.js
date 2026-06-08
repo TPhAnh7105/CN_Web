@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Search, RefreshCw } from 'lucide-react';
 import ProductList from '../components/ProductList';
+import { removeDiacritics } from '../utils/text';
 
 // Filter options
 const rooms = ['Tất cả', 'Phòng khách', 'Phòng ngủ', 'Phòng ăn & Bếp', 'Phòng làm việc', 'Ngoài trời'];
@@ -95,8 +96,11 @@ const Products = () => {
       result = result.filter(p => p.segment === selectedSegment);
     }
     if (searchKeyword.trim() !== '') {
-      const keyword = searchKeyword.toLowerCase();
-      result = result.filter(p => p.name.toLowerCase().includes(keyword) || (p.type && p.type.toLowerCase().includes(keyword)));
+      const keyword = removeDiacritics(searchKeyword);
+      result = result.filter(p => 
+        removeDiacritics(p.name).includes(keyword) || 
+        (p.type && removeDiacritics(p.type).includes(keyword))
+      );
     }
     if (minPrice !== '') {
       result = result.filter(p => p.rawPrice >= Number(minPrice));

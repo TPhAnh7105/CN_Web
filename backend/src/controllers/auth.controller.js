@@ -41,6 +41,22 @@ exports.login = async (req, res) => {
             return res.status(400).json({ message: 'Invalid credentials' });
         }
 
+        // Kiểm tra khóa tài khoản
+        if (user.isBlocked) {
+            if (user.blockExpiresAt && new Date(user.blockExpiresAt) < new Date()) {
+                // Tự động mở khóa nếu đã hết hạn
+                user.isBlocked = false;
+                user.blockReason = null;
+                user.blockExpiresAt = null;
+                await user.save();
+            } else {
+                let msg = 'Tài khoản của bạn đã bị khóa.';
+                if (user.blockReason) msg += ` Lý do: ${user.blockReason}.`;
+                if (user.blockExpiresAt) msg += ` Sẽ tự động mở khóa vào: ${new Date(user.blockExpiresAt).toLocaleString('vi-VN')}.`;
+                return res.status(403).json({ message: msg });
+            }
+        }
+
         // Create JWT
         const payload = {
             user: {

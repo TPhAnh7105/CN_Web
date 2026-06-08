@@ -13,7 +13,7 @@ const Cart = () => {
   const [errorMsg, setErrorMsg] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cod'); // Default payment method
   const [deliveryAddress, setDeliveryAddress] = useState('');
-  
+
   const [voucherCodeInput, setVoucherCodeInput] = useState('');
   const [appliedVoucher, setAppliedVoucher] = useState(null);
   const [voucherError, setVoucherError] = useState('');
@@ -21,19 +21,145 @@ const Cart = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
 
+  const [provinces, setProvinces] = useState([]);
+  const [districts, setDistricts] = useState([]);
+  const [wards, setWards] = useState([]);
+
+  const [provCode, setProvCode] = useState('');
+  const [distCode, setDistCode] = useState('');
+  const [wardCode, setWardCode] = useState('');
+
+  const [selectedProv, setSelectedProv] = useState('');
+  const [selectedDist, setSelectedDist] = useState('');
+  const [selectedWard, setSelectedWard] = useState('');
+  const [specificAddr, setSpecificAddr] = useState('');
+
+  const parseAddress = (addressStr) => {
+    if (!addressStr) return { specific: '', ward: '', district: '', province: '' };
+    const parts = addressStr.split(',').map(p => p.trim());
+    if (parts.length >= 4) {
+      const province = parts.pop();
+      const district = parts.pop();
+      const ward = parts.pop();
+      const specific = parts.join(', ');
+      return { specific, ward, district, province };
+    }
+    return { specific: addressStr, ward: '', district: '', province: '' };
+  };
+
   React.useEffect(() => {
-    if (isLoggedIn) {
-      const fetchProfile = async () => {
-        try {
+    const initAddressData = async () => {
+      try {
+        const provRes = await axios.get('https://provinces.open-api.vn/api/p/');
+        setProvinces(provRes.data);
+
+        if (isLoggedIn) {
           const res = await axios.get('http://localhost:5000/api/users/profile', {
             headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
           });
-          if (res.data.address) setDeliveryAddress(res.data.address);
-        } catch (e) {}
-      };
-      fetchProfile();
-    }
+          const defaultAddr = res.data.address;
+          if (defaultAddr) {
+            setDeliveryAddress(defaultAddr);
+            const parsed = parseAddress(defaultAddr);
+            setSpecificAddr(parsed.specific);
+
+            const matchingProv = provRes.data.find(p => p.name === parsed.province);
+            if (matchingProv) {
+              setProvCode(matchingProv.code);
+              setSelectedProv(matchingProv.name);
+
+              const distRes = await axios.get(`https://provinces.open-api.vn/api/p/${matchingProv.code}?depth=2`);
+              setDistricts(distRes.data.districts);
+
+              const matchingDist = distRes.data.districts.find(d => d.name === parsed.district);
+              if (matchingDist) {
+                setDistCode(matchingDist.code);
+                setSelectedDist(matchingDist.name);
+
+                const wardRes = await axios.get(`https://provinces.open-api.vn/api/d/${matchingDist.code}?depth=2`);
+                setWards(wardRes.data.wards);
+
+                const matchingWard = wardRes.data.wards.find(w => w.name === parsed.ward);
+                if (matchingWard) {
+                  setWardCode(matchingWard.code);
+                  setSelectedWard(matchingWard.name);
+                }
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Error initializing address data in cart", err);
+      }
+    };
+    initAddressData();
   }, [isLoggedIn]);
+
+  // Sync subfields changes back to deliveryAddress state
+  React.useEffect(() => {
+    if (selectedProv && selectedDist && selectedWard) {
+      setDeliveryAddress(`${specificAddr.trim()}, ${selectedWard}, ${selectedDist}, ${selectedProv}`);
+    } else {
+      setDeliveryAddress(specificAddr.trim());
+    }
+  }, [specificAddr, selectedWard, selectedDist, selectedProv]);
+
+  const handleProvinceChange = async (e) => {
+    const code = e.target.value;
+    setProvCode(code);
+    const name = e.target.options[e.target.selectedIndex].text;
+    setSelectedProv(code ? name : '');
+
+    setDistCode('');
+    setSelectedDist('');
+    setDistricts([]);
+    setWardCode('');
+    setSelectedWard('');
+    setWards([]);
+
+    if (code) {
+      try {
+        const res = await axios.get(`https://provinces.open-api.vn/api/p/${code}?depth=2`);
+        setDistricts(res.data.districts);
+      } catch (error) {
+        console.error("Error fetching districts", error);
+      }
+    }
+  };
+
+  const handleDistrictChange = async (e) => {
+    const code = e.target.value;
+    setDistCode(code);
+    const name = e.target.options[e.target.selectedIndex].text;
+    setSelectedDist(code ? name : '');
+
+    setWardCode('');
+    setSelectedWard('');
+    setWards([]);
+
+    if (code) {
+      try {
+        const res = await axios.get(`https://provinces.open-api.vn/api/d/${code}?depth=2`);
+        setWards(res.data.wards);
+      } catch (error) {
+        console.error("Error fetching wards", error);
+      }
+    }
+  };
+
+  const handleWardChange = (e) => {
+    const code = e.target.value;
+    setWardCode(code);
+    const name = e.target.options[e.target.selectedIndex].text;
+    setSelectedWard(code ? name : '');
+  };
+
+  const handleAddrChangeResetMsg = () => {
+    if (checkoutStatus === 'error' && errorMsg === 'Vui lòng nhập địa chỉ giao hàng') {
+      setCheckoutStatus(null);
+      setErrorMsg('');
+    }
+  };
 
   const triggerCheckout = () => {
     if (!isLoggedIn) {
@@ -53,7 +179,7 @@ const Cart = () => {
     setCheckoutStatus('processing');
     try {
       const response = await axios.post('http://localhost:5000/api/orders/checkout', {
-        items: cartItems.map(item => ({ productId: item.id, quantity: item.quantity })),
+        items: cartItems.map(item => ({ productId: item.id, quantity: item.quantity, color: item.selectedColor, size: item.selectedSize })),
         paymentMethod: paymentMethod,
         deliveryAddress: deliveryAddress,
         voucherCode: appliedVoucher ? appliedVoucher.code : undefined
@@ -126,6 +252,10 @@ const Cart = () => {
                 <img src={item.image || item.mainImage} alt={item.name} className="cart-item-img" />
                 <div className="cart-item-info">
                   <h3 style={{ color: 'var(--primary)', marginBottom: '5px' }}>{item.name}</h3>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '5px' }}>
+                    {item.selectedSize && <span style={{ marginRight: '10px' }}>Size: <b>{item.selectedSize}</b></span>}
+                    {item.selectedColor && <span>Màu: <b>{item.selectedColor}</b></span>}
+                  </div>
                   <div>
                     {item.discountPrice && (
                       <span style={{ textDecoration: 'line-through', fontSize: '0.85rem', color: 'var(--text-muted)', marginRight: '8px' }}>
@@ -138,11 +268,11 @@ const Cart = () => {
                   </div>
                 </div>
                 <div className="cart-item-quantity">
-                  <button className="qty-btn" onClick={() => updateQuantity(item.id, item.quantity - 1)}>
+                  <button className="qty-btn" onClick={() => updateQuantity(item.id, item.selectedColor, item.selectedSize, item.quantity - 1)}>
                     <Minus size={16} />
                   </button>
                   <span style={{ minWidth: '30px', textAlign: 'center', fontWeight: '600' }}>{item.quantity}</span>
-                  <button className="qty-btn" onClick={() => updateQuantity(item.id, item.quantity + 1)}>
+                  <button className="qty-btn" onClick={() => updateQuantity(item.id, item.selectedColor, item.selectedSize, item.quantity + 1)}>
                     <Plus size={16} />
                   </button>
                 </div>
@@ -153,7 +283,7 @@ const Cart = () => {
                 </div>
                 <button
                   className="cart-remove-btn"
-                  onClick={() => removeFromCart(item.id)}
+                  onClick={() => removeFromCart(item.id, item.selectedColor, item.selectedSize)}
                 >
                   <Trash2 size={18} />
                 </button>
@@ -172,16 +302,16 @@ const Cart = () => {
               <span>Phí vận chuyển</span>
               <span style={{ color: '#27ae60' }}>Miễn phí</span>
             </div>
-            
+
             {/* Vouchers section */}
             <div style={{ marginTop: '20px', marginBottom: '10px' }}>
               <div style={{ display: 'flex', gap: '10px' }}>
-                <input 
-                  type="text" 
-                  value={voucherCodeInput} 
-                  onChange={e => setVoucherCodeInput(e.target.value)} 
-                  placeholder="Nhập mã giảm giá..." 
-                  style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '0.9rem' }} 
+                <input
+                  type="text"
+                  value={voucherCodeInput}
+                  onChange={e => setVoucherCodeInput(e.target.value)}
+                  placeholder="Nhập mã giảm giá..."
+                  style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '0.9rem' }}
                   disabled={appliedVoucher !== null}
                 />
                 {!appliedVoucher ? (
@@ -205,16 +335,55 @@ const Cart = () => {
                 <span>Địa chỉ giao hàng</span>
                 <Link to="/profile" style={{ fontSize: '0.85rem', color: 'var(--secondary)', fontWeight: 'normal' }}>Sửa mặc định</Link>
               </h4>
-              <textarea 
-                value={deliveryAddress}
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px', marginBottom: '10px' }}>
+                <div>
+                  <select
+                    value={provCode}
+                    onChange={(e) => { handleProvinceChange(e); handleAddrChangeResetMsg(); }}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '0.9rem', outline: 'none' }}
+                  >
+                    <option value="">-- Chọn Tỉnh/Thành --</option>
+                    {provinces.map(p => (
+                      <option key={p.code} value={p.code}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <select
+                    value={distCode}
+                    onChange={(e) => { handleDistrictChange(e); handleAddrChangeResetMsg(); }}
+                    disabled={!provCode}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '0.9rem', outline: 'none', background: !provCode ? '#f5f5f5' : '#fff' }}
+                  >
+                    <option value="">-- Chọn Quận/Huyện --</option>
+                    {districts.map(d => (
+                      <option key={d.code} value={d.code}>{d.name}</option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={wardCode}
+                    onChange={(e) => { handleWardChange(e); handleAddrChangeResetMsg(); }}
+                    disabled={!distCode}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '0.9rem', outline: 'none', background: !distCode ? '#f5f5f5' : '#fff' }}
+                  >
+                    <option value="">-- Chọn Phường/Xã --</option>
+                    {wards.map(w => (
+                      <option key={w.code} value={w.code}>{w.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <textarea
+                value={specificAddr}
                 onChange={(e) => {
-                  setDeliveryAddress(e.target.value);
-                  if (checkoutStatus === 'error' && errorMsg === 'Vui lòng nhập địa chỉ giao hàng') {
-                    setCheckoutStatus(null);
-                    setErrorMsg('');
-                  }
+                  setSpecificAddr(e.target.value);
+                  handleAddrChangeResetMsg();
                 }}
-                placeholder="Nhập địa chỉ giao hàng chi tiết..."
+                placeholder="Số nhà, ngõ, tên đường cụ thể..."
                 style={{ width: '100%', minHeight: '80px', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', resize: 'vertical', fontSize: '0.9rem' }}
               />
             </div>
@@ -230,9 +399,9 @@ const Cart = () => {
                   <input type="radio" name="paymentMethod" value="wallet" checked={paymentMethod === 'wallet'} onChange={() => setPaymentMethod('wallet')} style={{ accentColor: 'var(--secondary)' }} />
                   <span>Thanh toán bằng ví online</span>
                 </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
-                  <input type="radio" name="paymentMethod" value="bank_transfer" checked={paymentMethod === 'bank_transfer'} onChange={() => setPaymentMethod('bank_transfer')} style={{ accentColor: 'var(--secondary)' }} />
-                  <span>Thanh toán qua ngân hàng</span>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'not-allowed', opacity: 0.5 }}>
+                  <input type="radio" name="paymentMethod" value="bank_transfer" checked={paymentMethod === 'bank_transfer'} disabled={true} style={{ accentColor: 'var(--secondary)' }} />
+                  <span>Thanh toán qua ngân hàng ( Đang bảo trì)</span>
                 </label>
               </div>
             </div>

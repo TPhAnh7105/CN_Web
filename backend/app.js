@@ -14,14 +14,21 @@ const segmentRoutes = require('./src/routes/segment.routes');
 const reviewRoutes = require('./src/routes/review.routes');
 const voucherRoutes = require('./src/routes/voucher.routes');
 const chatRoutes = require('./src/routes/chat.routes');
+const uploadRoutes = require('./src/routes/upload.routes');
+const path = require('path');
 
 const app = express();
 
 // Middleware
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: false,
+  xFrameOptions: false,
+  contentSecurityPolicy: false,
+}));
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // API Logger
 morgan.token('timestamp', () => new Date().toLocaleString('vi-VN'));
@@ -39,6 +46,7 @@ app.use('/api/segments', segmentRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/vouchers', voucherRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // Basic route
 app.get('/', (req, res) => {

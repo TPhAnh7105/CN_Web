@@ -4,6 +4,7 @@ import { Search, ShoppingCart, ChevronDown, LogOut, User, Wallet, History, Edit,
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
+import { removeDiacritics } from '../utils/text';
 
 const Navbar = () => {
   const [openMenu, setOpenMenu] = useState(null);
@@ -62,9 +63,10 @@ const Navbar = () => {
       if (searchQuery.trim().length > 1) {
         try {
           const res = await axios.get('http://localhost:5000/api/products');
+          const query = removeDiacritics(searchQuery);
           const filtered = res.data.filter(p =>
-            p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (p.type && p.type.toLowerCase().includes(searchQuery.toLowerCase()))
+            removeDiacritics(p.name).includes(query) ||
+            (p.type && removeDiacritics(p.type).includes(query))
           ).slice(0, 5); // top 5 only for preview
           setSearchResults(filtered);
           setShowLiveSearch(true);
@@ -309,7 +311,10 @@ const Navbar = () => {
                   <Link to="/wallet" className="user-dropdown-item" onClick={() => setShowUserDropdown(false)}>
                     <Wallet size={16} /> Số dư & Nạp tiền
                   </Link>
-                  <Link to="/transactions" className="user-dropdown-item" onClick={() => setShowUserDropdown(false)}>
+                  <Link to="/transactions" state={{ tab: 'orders' }} className="user-dropdown-item" onClick={() => setShowUserDropdown(false)}>
+                    <Package size={16} /> Đơn hàng của tôi
+                  </Link>
+                  <Link to="/transactions" state={{ tab: 'transactions' }} className="user-dropdown-item" onClick={() => setShowUserDropdown(false)}>
                     <History size={16} /> Lịch sử giao dịch
                   </Link>
 

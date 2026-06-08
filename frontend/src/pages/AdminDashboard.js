@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { ShoppingBag, Package, Users, Check, X, Trash, Plus, Edit2, AlertCircle, CheckCircle2, FolderOpen, Sofa, Palette, Coins, Activity, Eye, Percent, TrendingUp, MessageCircle, Send, Bot } from 'lucide-react';
+import { removeDiacritics } from '../utils/text';
+import { ShoppingBag, Package, Users, Check, X, Trash, Plus, Edit2, AlertCircle, CheckCircle2, FolderOpen, Sofa, Palette, Coins, Activity, Eye, Percent, TrendingUp, MessageCircle, Send } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 
 const AdminDashboard = () => {
@@ -34,13 +35,15 @@ const AdminDashboard = () => {
   const [catForm, setCatForm] = useState({ name: '' });
   const [newPromo, setNewPromo] = useState({ discountPrice: '', endDate: '' });
   const [genericAttrForm, setGenericAttrForm] = useState('');
-  
+  const [uploadingImage, setUploadingImage] = useState(false);
   // Chat admin reply state
   const [replySessionId, setReplySessionId] = useState(null);
   const [replyMessage, setReplyMessage] = useState(''); // simplified string name
   const [discountForm, setDiscountForm] = useState({ promoPrice: '' });
   const [searchProd, setSearchProd] = useState('');
   const [voucherForm, setVoucherForm] = useState({ code: '', discountPercent: '', maxDiscount: '', minOrderValue: '', usageLimit: 100, oncePerUser: true, startDate: '', endDate: '' });
+  const [blockReasonForm, setBlockReasonForm] = useState('');
+  const [blockExpiresAtForm, setBlockExpiresAtForm] = useState('');
 
   const headers = { Authorization: `Bearer ${token}` };
   const triggerToast = (msg, type='success') => {
@@ -130,6 +133,32 @@ const AdminDashboard = () => {
   }, [supportCount, hasNotifiedSupport]);
 
   // Handlers
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    setUploadingImage(true);
+    try {
+      const res = await axios.post('http://localhost:5000/api/upload/file', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (res.data.success) {
+        setProdForm(prev => ({ ...prev, mainImage: res.data.url }));
+        triggerToast('Tải ảnh lên thành công!');
+      }
+    } catch (err) {
+      triggerToast('Lỗi tải ảnh: ' + (err.response?.data?.message || err.message), 'error');
+    } finally {
+      setUploadingImage(false);
+      e.target.value = null;
+    }
+  };
   const handleSaveProduct = async (e) => {
     e.preventDefault();
     try {
@@ -141,26 +170,6 @@ const AdminDashboard = () => {
     } catch(e) { triggerToast('Lỗi!', 'error'); }
   };
 
-  const [isGenerating, setIsGenerating] = useState(false);
-  const handleGenerateDescription = async () => {
-    if (!prodForm.name) {
-      triggerToast('Vui lòng nhập tên sản phẩm trước!', 'error');
-      return;
-    }
-    setIsGenerating(true);
-    try {
-      const cMatch = categories.find(c => String(c.id) === String(prodForm.categoryId));
-      const room = cMatch ? cMatch.name : '';
-      const res = await axios.post('http://localhost:5000/api/chat/generate-description', {
-        name: prodForm.name, type: prodForm.type || '', style: prodForm.style || '', segment: prodForm.segment || '', room
-      }, { headers });
-      setProdForm({ ...prodForm, detailedDescription: res.data.description });
-      triggerToast('Đã tạo mô tả chi tiết bằng AI thành công!', 'success');
-    } catch (e) {
-      triggerToast('Lỗi khi gọi AI. Hãy thử lại.', 'error');
-    }
-    setIsGenerating(false);
-  };
 
   const saveAttribute = async (group) => {
     if(!genericAttrForm.trim()) return;
@@ -208,6 +217,105 @@ const AdminDashboard = () => {
   const deleteProduct = async () => {
     await axios.delete(`http://localhost:5000/api/products/${targetData.id}`, { headers });
     triggerToast('Đã xóa SP'); setActiveModal(null); fetchData();
+  };
+
+  const handlePrintOrder = () => {
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Hóa Đơn #${targetData.id}</title>
+          <style>
+            @media print { 
+              body { padding: 0; } 
+              .no-print { display: none !important; }
+            }
+            body { font-family: 'Segoe UI', Arial, sans-serif; padding: 20px; line-height: 1.5; color: #333; max-width: 600px; margin: 0 auto; background: #fff; }
+            h1 { text-align: center; color: #2c3e50; font-size: 24px; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 5px; }
+            .header { margin-bottom: 20px; border-bottom: 2px dashed #ccc; padding-bottom: 15px; }
+            .info { margin-bottom: 20px; font-size: 14px; }
+            .info p { margin: 6px 0; display: flex; justify-content: space-between; }
+            .info p strong { color: #555; }
+            table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 13px; }
+            th, td { border-bottom: 1px solid #eee; padding: 10px 4px; text-align: left; }
+            th { background-color: #fafafa; font-weight: bold; color: #2c3e50; border-bottom: 2px solid #333; }
+            td:nth-child(2), th:nth-child(2) { text-align: center; }
+            td:nth-child(3), th:nth-child(3) { text-align: center; }
+            td:last-child, th:last-child { text-align: right; font-weight: 600; }
+            .summary-row { display: flex; justify-content: space-between; margin-top: 15px; font-size: 14px; }
+            .total { display: flex; justify-content: space-between; font-size: 18px; font-weight: bold; margin-top: 15px; color: #e74c3c; border-top: 2px dashed #ccc; padding-top: 15px; }
+            .footer { text-align: center; margin-top: 40px; font-size: 12px; color: #7f8c8d; border-top: 1px solid #eee; padding-top: 15px; }
+            .print-btn { background: #2ecc71; color: white; border: none; padding: 10px 20px; font-size: 16px; border-radius: 5px; cursor: pointer; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 8px; margin: 0 auto 20px; width: 100%; max-width: 200px; box-shadow: 0 4px 6px rgba(46, 204, 113, 0.2); transition: 0.2s; }
+            .print-btn:hover { background: #27ae60; transform: translateY(-1px); }
+          </style>
+        </head>
+        <body>
+          <div class="no-print">
+            <button class="print-btn" onclick="window.print()">🖨️ In Hóa Đơn</button>
+          </div>
+          <div class="header">
+            <h1>LUXE FURNISH</h1>
+            <h2 style="text-align:center; font-size: 16px; color: #555; margin-top: 0; margin-bottom: 5px;">HÓA ĐƠN MUA HÀNG</h2>
+            <p style="text-align:center; font-size: 12px; color: #777; margin: 0;">Mã đơn hàng: #${targetData.id} | Ngày đặt: ${new Date(targetData.createdAt).toLocaleDateString('vi-VN')}</p>
+          </div>
+          
+          <div class="info">
+            <p><strong>Khách hàng:</strong> <span>${targetData.User?.username} (${targetData.User?.email})</span></p>
+            <p><strong>Địa chỉ nhận hàng:</strong> <span style="text-align:right; max-width:60%">${targetData.deliveryAddress || 'Nhận tại cửa hàng'}</span></p>
+            <p><strong>Phương thức TT:</strong> <span>${targetData.paymentMethod === 'cod' ? 'Thanh toán khi nhận hàng' : targetData.paymentMethod === 'bank_transfer' ? 'Chuyển khoản' : 'Thanh toán qua ví'}</span></p>
+            <p><strong>Trạng thái đơn:</strong> <span>${targetData.status === 'approved' ? 'Đã thanh toán / Phê duyệt' : targetData.status}</span></p>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Sản phẩm</th>
+                <th>Đơn giá</th>
+                <th>SL</th>
+                <th>Thành tiền</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${targetData.OrderItems?.map(item => `
+                <tr>
+                  <td>${item.Product?.name || 'Sản phẩm đã xóa'}</td>
+                  <td>${Number(item.priceAtTime).toLocaleString()} ₫</td>
+                  <td>${item.quantity}</td>
+                  <td>${(Number(item.priceAtTime) * item.quantity).toLocaleString()} ₫</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          
+          ${targetData.voucherCode ? `<div class="summary-row"><span>Mã giảm giá áp dụng (${targetData.voucherCode}):</span> <b style="color: #e74c3c">-${Number(targetData.discountAmount).toLocaleString()} ₫</b></div>` : ''}
+          
+          <div class="total">
+            <span>TỔNG CỘNG:</span> 
+            <span>${Number(targetData.totalAmount).toLocaleString()} ₫</span>
+          </div>
+
+          <div class="footer">
+            <p>Cảm ơn quý khách đã mua sắm tại Luxe Furnish!</p>
+            <p>Hotline: 1900 1234 | Website: www.luxefurnish.com</p>
+          </div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+  };
+
+  const processBlock = async (userId, reason, expiresAt = null) => {
+    try {
+      await axios.put(`http://localhost:5000/api/users/${userId}/block`, { reason, expiresAt }, { headers });
+      triggerToast('Đã cập nhật trạng thái tài khoản');
+      setActiveModal(null);
+      setBlockReasonForm('');
+      setBlockExpiresAtForm('');
+      fetchData();
+    } catch(err) {
+      triggerToast(err.response?.data?.message || 'Lỗi', 'error');
+    }
   };
 
   const saveVoucher = async (e) => {
@@ -275,7 +383,18 @@ const AdminDashboard = () => {
                   <div><label>Loại nội thất</label><select className="admin-input" value={prodForm.type} required onChange={e=>setProdForm({...prodForm, type:e.target.value})}><option value="">- Chọn -</option>{typeOpts.map(t=><option key={t.id} value={t.name}>{t.name}</option>)}</select></div>
                   <div><label>Phong cách</label><select className="admin-input" value={prodForm.style} required onChange={e=>setProdForm({...prodForm, style:e.target.value})}><option value="">- Chọn -</option>{styleOpts.map(s=><option key={s.id} value={s.name}>{s.name}</option>)}</select></div>
                   <div><label>Phân khúc</label><select className="admin-input" value={prodForm.segment} required onChange={e=>setProdForm({...prodForm, segment:e.target.value})}><option value="">- Chọn -</option>{segOpts.map(s=><option key={s.id} value={s.name}>{s.name}</option>)}</select></div>
-                  <div style={{gridColumn:'1/-1'}}><label>Ảnh</label><input className="admin-input" value={prodForm.mainImage} onChange={e=>setProdForm({...prodForm, mainImage:e.target.value})}/></div>
+                  <div><label>Kích cỡ (Tùy chọn)</label><input className="admin-input" placeholder="VD: S, M, L (Cách bởi dấu phẩy)" value={prodForm.sizes || ''} onChange={e=>setProdForm({...prodForm, sizes:e.target.value})}/></div>
+                  <div><label>Màu sắc (Tùy chọn)</label><input className="admin-input" placeholder="VD: Trắng, Đen (Cách bởi dấu phẩy)" value={prodForm.colors || ''} onChange={e=>setProdForm({...prodForm, colors:e.target.value})}/></div>
+                  <div style={{gridColumn:'1/-1'}}>
+                    <label>Ảnh sản phẩm (URL hoặc tải lên)</label>
+                    <div style={{display: 'flex', gap: '10px', alignItems: 'center'}}>
+                      <input className="admin-input" style={{flex: 1}} placeholder="Nhập URL hoặc tải file bên cạnh" value={prodForm.mainImage} onChange={e=>setProdForm({...prodForm, mainImage:e.target.value})}/>
+                      <input type="file" accept="image/*" id="mainImageUpload" style={{display: 'none'}} onChange={handleImageUpload} />
+                      <label htmlFor="mainImageUpload" style={{background: 'var(--primary)', color: 'white', padding: '10px 15px', borderRadius: '8px', cursor: 'pointer', whiteSpace: 'nowrap', fontWeight: 600, display: 'flex', alignItems: 'center', margin: 0, height: '100%', boxSizing: 'border-box'}}>
+                        {uploadingImage ? 'Đang tải...' : 'Tải lên từ máy'}
+                      </label>
+                    </div>
+                  </div>
                   <div style={{gridColumn:'1/-1'}}>
                     <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 5}}>
                       <label style={{marginBottom: 0}}>Mô tả ngắn (Hiển thị ngay dưới giá)</label>
@@ -286,6 +405,30 @@ const AdminDashboard = () => {
                     <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 5}}>
                       <label style={{marginBottom: 0}}>Mô tả chi tiết (Bài viết đầy đủ)</label>
                       <div style={{display:'flex', gap:10}}>
+                        <input type="file" accept="image/*" id="descImageUpload" style={{display: 'none'}} onChange={async (e) => {
+                          const file = e.target.files[0];
+                          if (!file) return;
+                          const formData = new FormData();
+                          formData.append('file', file);
+                          setUploadingImage(true);
+                          try {
+                            const res = await axios.post('http://localhost:5000/api/upload/file', formData, {
+                              headers: { 'Content-Type': 'multipart/form-data', 'Authorization': `Bearer ${token}` }
+                            });
+                            if (res.data.success) {
+                              setProdForm(prev => ({...prev, detailedDescription: (prev.detailedDescription || '') + `\n<img src="${res.data.url}" style="width:100%; border-radius:8px; margin: 10px 0;" alt="img" />\n`}));
+                              triggerToast('Đã chèn ảnh vào mô tả!');
+                            }
+                          } catch (err) {
+                            triggerToast('Lỗi tải ảnh: ' + (err.response?.data?.message || err.message), 'error');
+                          } finally {
+                            setUploadingImage(false);
+                            e.target.value = null;
+                          }
+                        }} />
+                        <label htmlFor="descImageUpload" style={{fontSize: '0.75rem', padding: '5px 10px', background: '#27ae60', color: '#fff', borderRadius: '4px', border: 'none', cursor: 'pointer', margin: 0, display: 'flex', alignItems: 'center'}}>
+                          ⬆️ Tải ảnh lên
+                        </label>
                         <button type="button" onClick={() => {
                           const url = prompt("Nhập link ảnh (URL) để chèn vào bài viết:");
                           if (url) {
@@ -293,9 +436,6 @@ const AdminDashboard = () => {
                           }
                         }} style={{fontSize: '0.75rem', padding: '5px 10px', background: '#34495e', color: '#fff', borderRadius: '4px', border: 'none', cursor: 'pointer'}}>
                           🖼️ Chèn link ảnh
-                        </button>
-                        <button type="button" onClick={handleGenerateDescription} disabled={isGenerating} style={{fontSize: '0.75rem', padding: '5px 10px', background: 'var(--primary)', color: '#fff', borderRadius: '4px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', opacity: isGenerating ? 0.7 : 1}}>
-                          <Bot size={14}/> {isGenerating ? 'Đang viết...' : 'Nhờ AI Viết'}
                         </button>
                       </div>
                     </div>
@@ -367,6 +507,18 @@ const AdminDashboard = () => {
               </div>
             )}
 
+            {activeModal === 'blockUser' && (
+              <form onSubmit={(e)=>{e.preventDefault(); processBlock(targetData.id, blockReasonForm, blockExpiresAtForm || null);}}>
+                <h3>Khóa tài khoản {targetData.username}</h3>
+                <label style={{marginTop:15, display:'block'}}>Lý do khóa:</label>
+                <input className="admin-input" required placeholder="Nhập lý do vi phạm..." value={blockReasonForm} onChange={e=>setBlockReasonForm(e.target.value)} />
+                <label style={{marginTop:15, display:'block'}}>Thời hạn khóa (Để trống nếu khóa vĩnh viễn):</label>
+                <input type="datetime-local" className="admin-input" value={blockExpiresAtForm} onChange={e=>setBlockExpiresAtForm(e.target.value)} />
+                <button type="submit" className="btn btn-primary" style={{width:'100%', marginTop:15, background:'#e74c3c'}}>Khóa ngay</button>
+                <button type="button" onClick={()=>setActiveModal(null)} style={{width:'100%', background:'none', border:'none', marginTop:5}}>Hủy</button>
+              </form>
+            )}
+
             {activeModal === 'viewOrder' && targetData && (
               <div>
                 <h3>Chi tiết đơn hàng #{targetData.id}</h3>
@@ -382,7 +534,13 @@ const AdminDashboard = () => {
                     <tbody>
                       {targetData.OrderItems?.map(item => (
                         <tr key={item.id}>
-                          <td>{item.Product?.name || 'Sản phẩm đã xóa'}</td>
+                          <td>
+                            {item.Product?.name || 'Sản phẩm đã xóa'}
+                            <div style={{fontSize: '0.8rem', color: 'var(--text-muted)'}}>
+                               {item.size && <span style={{marginRight: '5px'}}>Size: {item.size}</span>}
+                               {item.color && <span>Màu: {item.color}</span>}
+                            </div>
+                          </td>
                           <td>x{item.quantity}</td>
                           <td>{Number(item.priceAtTime).toLocaleString()} ₫</td>
                           <td>{(Number(item.priceAtTime) * item.quantity).toLocaleString()} ₫</td>
@@ -394,7 +552,10 @@ const AdminDashboard = () => {
                 <div style={{textAlign:'right', fontSize:'1.1rem'}}>
                   Tổng cộng: <b style={{color:'var(--primary)'}}>{Number(targetData.totalAmount).toLocaleString()} ₫</b>
                 </div>
-                <button className="btn btn-primary" style={{width:'100%', marginTop:15}} onClick={()=>setActiveModal(null)}>Đóng</button>
+                <div style={{display:'flex', gap:10, marginTop:15}}>
+                  <button className="btn btn-secondary" style={{width:'50%', background:'#3498db', color:'white', border:'none', cursor:'pointer'}} onClick={handlePrintOrder}>📄 Xuất Hóa Đơn</button>
+                  <button className="btn btn-primary" style={{width:'50%'}} onClick={()=>setActiveModal(null)}>Đóng</button>
+                </div>
               </div>
             )}
 
@@ -605,6 +766,23 @@ const AdminDashboard = () => {
                 ) : (
                   <p style={{ color: 'var(--text-muted)' }}>Chưa có dữ liệu.</p>
                 )}
+
+                <h3 style={{ marginTop: '30px', marginBottom: '15px' }}>📦 Sản phẩm mới thêm gần đây</h3>
+                <table className="admin-table" style={{ marginBottom: '20px' }}>
+                  <thead>
+                    <tr><th>Sản phẩm</th><th>Giá bán</th><th>Tồn kho</th><th>Ngày thêm</th></tr>
+                  </thead>
+                  <tbody>
+                    {[...products].sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5).map(p => (
+                      <tr key={p.id}>
+                        <td><div style={{display:'flex', alignItems:'center', gap:10}}><img src={p.mainImage} style={{width:30,height:30,objectFit:'cover',borderRadius:4}} alt=""/> <b>{p.name}</b></div></td>
+                        <td>{Number(p.price).toLocaleString()} ₫</td>
+                        <td>{p.stock}</td>
+                        <td>{new Date(p.createdAt).toLocaleDateString('vi-VN')}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </>
             );
           })()}
@@ -661,7 +839,7 @@ const AdminDashboard = () => {
                 </div>
               </div>
               <table className="admin-table"><thead><tr><th>Sản phẩm</th><th>Phân loại</th><th>Phong cách</th><th>Phân khúc</th><th>Kho</th><th>Xử lý</th></tr></thead><tbody>
-                {products.filter(p => p.name.toLowerCase().includes(searchProd.toLowerCase())).map(p=>(<tr key={p.id}>
+                {products.filter(p => removeDiacritics(p.name).includes(removeDiacritics(searchProd))).map(p=>(<tr key={p.id}>
                 <td><div style={{display:'flex', alignItems:'center', gap:10}}><img src={p.mainImage} style={{width:40,height:40,objectFit:'cover',borderRadius:5}} alt="img"/> <b>{p.name}</b></div></td>
                 <td><small>{p.type} <br/><span style={{color:'var(--primary)'}}>{p.room}</span></small></td>
                 <td><small>{p.style}</small></td>
@@ -682,7 +860,7 @@ const AdminDashboard = () => {
               <table className="admin-table">
                 <thead><tr><th>Sản phẩm</th><th>Giá gốc</th><th>Giá hiện tại</th><th>Khuyến mãi</th><th>Thao tác</th></tr></thead>
                 <tbody>
-                  {products.filter(p => p.name.toLowerCase().includes(searchProd.toLowerCase())).map(p=>(
+                  {products.filter(p => removeDiacritics(p.name).includes(removeDiacritics(searchProd))).map(p=>(
                     <tr key={p.id}>
                       <td><div style={{display:'flex', alignItems:'center', gap:10}}><img src={p.mainImage} style={{width:40,height:40,objectFit:'cover',borderRadius:5}} alt="img"/> <b>{p.name}</b></div></td>
                       <td>{Number(p.price).toLocaleString()} ₫</td>
@@ -783,8 +961,16 @@ const AdminDashboard = () => {
           )}
 
           {tab === 'users' && (
-            <><h2>👥 Khách hàng</h2><table className="admin-table"><thead><tr><th>Tên</th><th>Email</th><th>Số dư</th></tr></thead><tbody>
-              {appUsers.map(u=>(<tr key={u.id}><td>{u.username}</td><td>{u.email}</td><td style={{color:'#27ae60',fontWeight:700}}>{Number(u.balance).toLocaleString()} ₫</td></tr>))}
+            <><h2>👥 Khách hàng</h2><table className="admin-table"><thead><tr><th>Tên</th><th>Email</th><th>Số dư</th><th>Trạng thái</th><th>Chi tiết phạt</th><th>Thao tác</th></tr></thead><tbody>
+              {appUsers.map(u=>(<tr key={u.id}><td>{u.username}</td><td>{u.email}</td><td style={{color:'#27ae60',fontWeight:700}}>{Number(u.balance).toLocaleString()} ₫</td>
+              <td>{u.isBlocked ? <span className="badge-cancelled">Bị khóa</span> : <span className="badge-approved">Hoạt động</span>}</td>
+              <td style={{color:'#e74c3c', fontSize:'0.85rem'}}>
+                {u.blockReason ? <div><b>Lý do:</b> {u.blockReason}</div> : ''}
+                {u.blockExpiresAt ? <div><b>Đến:</b> {new Date(u.blockExpiresAt).toLocaleString('vi-VN')}</div> : (u.isBlocked ? <div><b>Vĩnh viễn</b></div> : '')}
+              </td>
+              <td>
+                <button onClick={()=>{setTargetData(u); setBlockReasonForm(''); setBlockExpiresAtForm(''); if(!u.isBlocked) setActiveModal('blockUser'); else processBlock(u.id, '', null);}} className="action-btn" style={{background:u.isBlocked?'#27ae60':'#e74c3c',color:'#fff', padding:'5px 10px', fontSize:'0.8rem', width:'auto'}}>{u.isBlocked?'Mở khóa':'Khóa tài khoản'}</button>
+              </td></tr>))}
             </tbody></table></>
           )}
 

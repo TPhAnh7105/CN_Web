@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { Search as SearchIcon } from 'lucide-react';
 import axios from 'axios';
+import { removeDiacritics } from '../utils/text';
 
 const Search = () => {
   const [query, setQuery] = useState('');
@@ -25,11 +26,12 @@ const Search = () => {
     setSearched(true);
     try {
       const response = await axios.get('http://localhost:5000/api/products');
+      const query = removeDiacritics(searchQuery);
       const filtered = response.data.filter(p =>
-        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (p.type && p.type.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (p.style && p.style.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (p.room && p.room.toLowerCase().includes(searchQuery.toLowerCase()))
+        removeDiacritics(p.name).includes(query) ||
+        (p.type && removeDiacritics(p.type).includes(query)) ||
+        (p.style && removeDiacritics(p.style).includes(query)) ||
+        (p.room && removeDiacritics(p.room).includes(query))
       );
       setResults(filtered);
     } catch (error) {

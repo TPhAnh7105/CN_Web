@@ -2,6 +2,7 @@ const User = require('../models/user.model');
 const Transaction = require('../models/transaction.model');
 const { sequelize } = require('../config/db');
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
 // Get current user profile
 exports.getProfile = async (req, res) => {
@@ -22,12 +23,34 @@ exports.updateProfile = async (req, res) => {
         const { username, address, birthDate } = req.body;
         const user = await User.findByPk(req.user.id);
         
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
         if (username) user.username = username;
         if (address !== undefined) user.address = address;
         if (birthDate !== undefined) user.birthDate = birthDate;
         
         await user.save();
-        res.json({ success: true, user });
+
+        // Create a new JWT token with the updated user details
+        const payload = {
+            user: {
+                id: user.id,
+                role: user.role,
+                username: user.username
+            }
+        };
+
+        jwt.sign(
+            payload,
+            process.env.JWT_SECRET || 'supersecretkey',
+            { expiresIn: '1h' },
+            (err, token) => {
+                if (err) throw err;
+                res.json({ success: true, user, token });
+            }
+        );
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
@@ -125,5 +148,29 @@ exports.deleteUser = async (req, res) => {
         if (user.role === 'admin') return res.status(400).json({ message: 'Không thể xóa Admin' });
         await user.destroy();
         res.json({ success: true, message: 'Đã xóa người dùng' });
+    } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
+// ADMIN: Block/Unblock user with reason
+exports.blockUser = async (req, res) => {
+    try {
+        const user = await User.findByPk(req.params.id);
+        if (!user) return res.status(404).json({ message: 'Không tìm thấy' });
+        if (user.role === 'admin') return res.status(403).json({ message: 'Không thể khóa Admin khác' });
+
+        const { reason, expiresAt } = req.body;
+        
+        // Toggle block state
+        user.isBlocked = !user.isBlocked;
+        if (user.isBlocked) {
+            user.blockReason = reason || 'Vi phạm chính sách';
+            user.blockExpiresAt = expiresAt ? new Date(expiresAt) : null;
+        } else {
+            user.blockReason = null;
+            user.blockExpiresAt = null;
+        }
+
+        await user.save();
+        res.json({ success: true, message: user.isBlocked ? 'Đã khóa tài khoản' : 'Đã mở khóa tài khoản', isBlocked: user.isBlocked, blockReason: user.blockReason, blockExpiresAt: user.blockExpiresAt });
     } catch (err) { res.status(500).json({ message: err.message }); }
 };

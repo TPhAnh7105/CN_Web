@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { MessageCircle, X, Send, Bot, AlertCircle, Trash2, Headphones } from 'lucide-react';
+import { MessageCircle, X, Send, Bot, AlertCircle, Headphones, Plus, History } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
@@ -77,37 +77,73 @@ const ChatWidget = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [typingIndex, setTypingIndex] = useState(-1);
   const [isAdminMode, setIsAdminMode] = useState(false);
-  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [sessionsList, setSessionsList] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
   const messagesEndRef = useRef(null);
   const navigate = useNavigate();
 
   // Khởi tạo Session & Lịch sử
   useEffect(() => {
-    const storageKey = user ? `chat_history_${user.id}` : 'chat_history_guest';
+    const storageKey = user ? `chat_sessions_${user.id}` : 'chat_sessions_guest';
     const storage = user ? localStorage : sessionStorage;
 
     const savedData = storage.getItem(storageKey);
-    if (savedData) {
-      const parsed = JSON.parse(savedData);
-      setMessages(parsed.messages || []);
-      setSessionId(parsed.sessionId);
-      setIsAdminMode(parsed.isAdminMode || false);
-    } else {
-      const newSessionId = 'sess_' + Math.random().toString(36).substr(2, 9);
-      setSessionId(newSessionId);
-      const initialMsg = { role: 'model', text: 'Xin chào! Tôi là Trợ lý tư vấn của Luxe Furnish. Tôi có thể giúp bạn tìm kiếm nội thất hoặc giải đáp thắc mắc gì không?', typed: true };
-      setMessages([initialMsg]);
-      storage.setItem(storageKey, JSON.stringify({ sessionId: newSessionId, messages: [initialMsg], isAdminMode: false }));
+    let allSessions = savedData ? JSON.parse(savedData) : [];
+
+    // Migrate from old chat_history if needed
+    const oldStorageKey = user ? `chat_history_${user.id}` : 'chat_history_guest';
+    const oldSavedData = storage.getItem(oldStorageKey);
+    if (oldSavedData && allSessions.length === 0) {
+      const parsedOld = JSON.parse(oldSavedData);
+      const migratedSession = {
+        sessionId: parsedOld.sessionId || 'sess_' + Math.random().toString(36).substr(2, 9),
+        messages: parsedOld.messages || [],
+        isAdminMode: parsedOld.isAdminMode || false,
+        updatedAt: Date.now()
+      };
+      allSessions = [migratedSession];
+      storage.removeItem(oldStorageKey);
     }
+    
+    if (allSessions.length === 0) {
+      const newSessionId = 'sess_' + Math.random().toString(36).substr(2, 9);
+      const initialMsg = { role: 'model', text: 'Xin chào! Tôi là Trợ lý tư vấn của Luxe Furnish. Tôi có thể giúp bạn tìm kiếm nội thất hoặc giải đáp thắc mắc gì không?', typed: true };
+      const newSession = { sessionId: newSessionId, messages: [initialMsg], isAdminMode: false, updatedAt: Date.now() };
+      allSessions = [newSession];
+    }
+    
+    // Sort by updated time desc
+    allSessions.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    setSessionsList(allSessions);
+    
+    const activeSession = allSessions[0];
+    setSessionId(activeSession.sessionId);
+    setMessages(activeSession.messages || []);
+    setIsAdminMode(activeSession.isAdminMode || false);
   }, [user]);
 
   // Cập nhật Storage mỗi khi có tin nhắn hoặc mode thay đổi
   useEffect(() => {
-    if (messages.length === 0) return;
-    const storageKey = user ? `chat_history_${user.id}` : 'chat_history_guest';
+    if (messages.length === 0 || !sessionId) return;
+    const storageKey = user ? `chat_sessions_${user.id}` : 'chat_sessions_guest';
     const storage = user ? localStorage : sessionStorage;
-    storage.setItem(storageKey, JSON.stringify({ sessionId, messages, isAdminMode }));
-  }, [messages, user, sessionId, isAdminMode]);
+    
+    setSessionsList(prevList => {
+      const newList = [...prevList];
+      const existingIndex = newList.findIndex(s => s.sessionId === sessionId);
+      const sessionData = { sessionId, messages, isAdminMode, updatedAt: Date.now() };
+      
+      if (existingIndex >= 0) {
+        newList[existingIndex] = sessionData;
+      } else {
+        newList.push(sessionData);
+      }
+      
+      newList.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+      storage.setItem(storageKey, JSON.stringify(newList));
+      return newList;
+    });
+  }, [messages, isAdminMode, sessionId, user]);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -211,21 +247,23 @@ const ChatWidget = () => {
     }
   };
 
-  const handleClearChatClick = () => {
-    setShowClearConfirm(true);
+  const loadSession = (targetSessionId) => {
+    const sessionToLoad = sessionsList.find(s => s.sessionId === targetSessionId);
+    if (sessionToLoad) {
+      setSessionId(sessionToLoad.sessionId);
+      setMessages(sessionToLoad.messages || []);
+      setIsAdminMode(sessionToLoad.isAdminMode || false);
+      setShowHistory(false);
+    }
   };
 
-  const confirmClearChat = () => {
+  const createNewSession = () => {
     const newSessionId = 'sess_' + Math.random().toString(36).substr(2, 9);
     setSessionId(newSessionId);
     setIsAdminMode(false);
-    const initialMsg = { role: 'model', text: 'Xin chào! Cuộc trò chuyện đã được làm mới. Tôi có thể giúp gì cho bạn?', typed: true };
+    const initialMsg = { role: 'model', text: 'Xin chào! Cuộc trò chuyện mới đã được tạo. Tôi có thể giúp gì cho bạn?', typed: true };
     setMessages([initialMsg]);
-    setShowClearConfirm(false);
-  };
-
-  const cancelClearChat = () => {
-    setShowClearConfirm(false);
+    setShowHistory(false);
   };
 
   const toggleAdminMode = () => {
@@ -294,8 +332,11 @@ const ChatWidget = () => {
               <button onClick={toggleAdminMode} title={isAdminMode ? "Quay lại AI" : "Gọi nhân viên"} className={`chat-action-btn ${isAdminMode ? 'active' : ''}`}>
                 {isAdminMode ? <Bot size={16} /> : <Headphones size={16} />}
               </button>
-              <button onClick={handleClearChatClick} title="Xóa lịch sử" className="chat-action-btn">
-                <Trash2 size={16} />
+              <button onClick={() => setShowHistory(!showHistory)} title="Lịch sử trò chuyện" className={`chat-action-btn ${showHistory ? 'active' : ''}`}>
+                <History size={16} />
+              </button>
+              <button onClick={createNewSession} title="Cuộc trò chuyện mới" className="chat-action-btn">
+                <Plus size={16} />
               </button>
               <button onClick={() => setIsOpen(false)} title="Đóng chat" className="chat-action-btn">
                 <X size={16} />
@@ -303,17 +344,32 @@ const ChatWidget = () => {
             </div>
           </div>
 
-          {showClearConfirm && (
-            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '16px' }}>
-              <div style={{ background: '#fff', padding: '25px', borderRadius: '16px', width: '85%', textAlign: 'center', boxShadow: '0 10px 30px rgba(0,0,0,0.3)' }}>
-                <AlertCircle size={40} color="#e74c3c" style={{ margin: '0 auto 15px' }} />
-                <h4 style={{ margin: '0 0 10px', fontSize: '1.1rem', color: '#2d3436' }}>Xóa cuộc trò chuyện?</h4>
-                <p style={{ margin: '0 0 20px', fontSize: '0.85rem', color: '#636e72', lineHeight: 1.5 }}>Lịch sử tin nhắn sẽ bị xóa khỏi màn hình này, nhưng vẫn được lưu trên máy chủ để hỗ trợ.</p>
-                <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
-                  <button onClick={cancelClearChat} style={{ padding: '10px 0', background: '#f1f2f6', color: '#2d3436', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, flex: 1, transition: '0.2s' }}>Hủy bỏ</button>
-                  <button onClick={confirmClearChat} style={{ padding: '10px 0', background: '#e74c3c', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, flex: 1, transition: '0.2s' }}>Xóa ngay</button>
+          {showHistory && (
+            <div style={{ position: 'absolute', top: '55px', left: 0, right: 0, bottom: '60px', background: '#fff', zIndex: 10, overflowY: 'auto', padding: '10px' }}>
+              <h4 style={{ margin: '0 0 10px', fontSize: '1rem', color: '#2d3436', paddingBottom: '10px', borderBottom: '1px solid #eee' }}>Lịch sử trò chuyện</h4>
+              {sessionsList.map((session) => (
+                <div 
+                  key={session.sessionId} 
+                  onClick={() => loadSession(session.sessionId)}
+                  style={{ 
+                    padding: '12px', 
+                    marginBottom: '8px', 
+                    borderRadius: '8px', 
+                    background: session.sessionId === sessionId ? '#e3f2fd' : '#f8f9fa',
+                    cursor: 'pointer',
+                    border: session.sessionId === sessionId ? '1px solid #bbdefb' : '1px solid transparent',
+                    transition: '0.2s'
+                  }}
+                  className="chat-history-item"
+                >
+                  <div style={{ fontSize: '0.85rem', color: '#2d3436', fontWeight: session.sessionId === sessionId ? '600' : '400', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {session.messages[session.messages.length - 1]?.text || 'Cuộc trò chuyện mới'}
+                  </div>
+                  <div style={{ fontSize: '0.7rem', color: '#b2bec3', marginTop: '4px' }}>
+                    {new Date(session.updatedAt || Date.now()).toLocaleString('vi-VN')}
+                  </div>
                 </div>
-              </div>
+              ))}
             </div>
           )}
 

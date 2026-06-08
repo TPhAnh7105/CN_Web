@@ -1,3 +1,52 @@
+# Hướng dẫn cài đặt và chạy dự án Luxe Furnish
+
+Dự án này bao gồm hai phần chính: `frontend` (ReactJS) và `backend` (Node.js/Express). Cơ sở dữ liệu được sử dụng là MySQL.
+
+## Yêu cầu hệ thống
+- Node.js (phiên bản 16.x trở lên)
+- MySQL Server
+
+## 1. Thiết lập Cơ sở dữ liệu
+1. Khởi động MySQL Server.
+2. Tạo một database mới có tên là `furniture_store` (bạn có thể sử dụng phpMyAdmin, MySQL Workbench hoặc command line).
+3. (Tùy chọn) Tạo và cấu hình file `.env` trong thư mục `backend` nếu thông tin đăng nhập MySQL của bạn khác với mặc định (user: `root` / mật khẩu: rỗng).
+
+## 2. Cài đặt và chạy Backend
+1. Mở terminal và di chuyển vào thư mục `backend`:
+   ```bash
+   cd backend
+   ```
+2. Cài đặt các gói phụ thuộc:
+   ```bash
+   npm install
+   ```
+3. Khởi tạo cơ sở dữ liệu và dữ liệu mẫu (seed):
+   ```bash
+   npm run seed
+   ```
+4. Khởi động server:
+   ```bash
+   npm run dev
+   ```
+   Server backend sẽ chạy tại `http://localhost:5000`.
+
+## 3. Cài đặt và chạy Frontend
+1. Mở một terminal mới và di chuyển vào thư mục `frontend`:
+   ```bash
+   cd frontend
+   ```
+2. Cài đặt các gói phụ thuộc:
+   ```bash
+   npm install
+   ```
+3. Khởi động ứng dụng:
+   ```bash
+   npm start
+   ```
+   Website sẽ tự động mở trên trình duyệt tại `http://localhost:3000`.
+
+---
+
 # ĐẶC TẢ BÀI TOÁN
 Xây dựng hệ thống website quản lý cửa hàng đồ nội thất
 ## 1. Mô tả bài toán

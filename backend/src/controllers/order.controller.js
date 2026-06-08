@@ -24,7 +24,7 @@ exports.checkout = async (req, res) => {
             if (!p) throw new Error(`SP ID ${item.productId} ko tồn tại`);
             const currentPrice = p.discountPrice ? Number(p.discountPrice) : Number(p.price);
             total += currentPrice * item.quantity;
-            validItems.push({ productId: p.id, quantity: item.quantity, price: currentPrice });
+            validItems.push({ productId: p.id, quantity: item.quantity, price: currentPrice, color: item.color, size: item.size });
         }
 
         let discountAmount = 0;
@@ -92,7 +92,9 @@ exports.checkout = async (req, res) => {
                 orderId: order.id,
                 productId: v.productId,
                 quantity: v.quantity,
-                priceAtTime: v.price
+                priceAtTime: v.price,
+                color: v.color,
+                size: v.size
             }, { transaction: t });
         }
 
